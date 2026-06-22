@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>설녀_잊혀진 설산의 수호자</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;700;900&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f7f2e6;
+    --paper-2:#fdfbf6;
+    --ink:#211e1a;
+    --ink-soft:#5b554b;
+    --line:#ddd4bd;
+    --line-soft:#e8e0cc;
+    --red:#a02b2f;
+    --red-deep:#7a1f24;
+    --red-tint:#f2e0dd;
+    --gold:#8a6d2f;
+    --gold-tint:#f0e9d6;
+    --ice:#5d7f95;
+    --ice-tint:#e3edf1;
+    --serif:'Noto Serif KR', serif;
+    --sans:'Noto Sans KR', sans-serif;
+    --maxw:740px;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    font-weight:400;
+    font-size:17px;
+    line-height:1.8;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--red-tint);}
+
+  /* ===== layout shell ===== */
+  .shell{display:flex;max-width:1240px;margin:0 auto;}
+  .toc{
+    width:230px;flex:0 0 230px;position:sticky;top:0;align-self:flex-start;
+    height:100vh;padding:48px 22px 40px 36px;display:flex;flex-direction:column;
+  }
+  .toc-mark{font-family:var(--serif);font-weight:700;font-size:1rem;color:var(--ink);margin-bottom:6px;}
+  .toc-mark span{color:var(--red);}
+  .toc-sub{font-size:0.72rem;color:var(--ink-soft);letter-spacing:0.06em;margin-bottom:40px;}
+  .toc-list{list-style:none;display:flex;flex-direction:column;gap:4px;flex:1;}
+  .toc-list a{
+    display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--ink-soft);
+    font-size:0.86rem;padding:9px 10px;border-radius:5px;font-weight:500;
+    border-left:2px solid transparent;transition:color .2s, border-color .2s, background .2s;
+  }
+  .toc-list a .num{font-family:var(--serif);font-size:0.74rem;color:var(--line);width:18px;}
+  .toc-list a:hover{color:var(--ink);background:rgba(160,43,47,0.05);}
+  .toc-list a.active{color:var(--red);border-left-color:var(--red);background:rgba(160,43,47,0.06);}
+  .toc-list a.active .num{color:var(--red);}
+  .toc-foot{font-size:0.7rem;color:var(--line);letter-spacing:0.05em;margin-top:30px;}
+
+  .mobile-bar{display:none;}
+
+  main.doc{flex:1;min-width:0;padding:0 0 100px;border-left:1px solid var(--line-soft);}
+  .container{max-width:var(--maxw);padding:0 56px;margin:0 auto;}
+
+  .reveal{opacity:0;transform:translateY(12px);transition:opacity .6s ease,transform .6s ease;}
+  .reveal.in{opacity:1;transform:none;}
+  @media (prefers-reduced-motion: reduce){.reveal{opacity:1;transform:none;transition:none;} html{scroll-behavior:auto;}}
+
+  /* ===== hero ===== */
+  .hero{padding:80px 0 56px;}
+  .eyebrow{
+    font-size:0.76rem;font-weight:700;letter-spacing:0.16em;color:var(--red);
+    text-transform:uppercase;margin-bottom:18px;display:flex;align-items:center;gap:8px;
+  }
+  .eyebrow::before{content:"";width:14px;height:2px;background:var(--red);}
+  h1.title{
+    font-family:var(--serif);font-weight:900;color:var(--ink);
+    font-size:clamp(2.1rem,4.4vw,3rem);line-height:1.3;letter-spacing:-0.01em;
+  }
+  h1.title em{font-style:normal;color:var(--red);}
+  .title-sub{font-family:var(--serif);font-weight:700;font-size:1.3rem;color:var(--red);margin-top:8px;letter-spacing:0.01em;}
+  .intro{margin-top:24px;font-size:1.08rem;line-height:1.9;color:var(--ink);max-width:620px;font-weight:400;}
+  .intro .emph{color:var(--red-deep);font-weight:600;}
+  .subtitle{margin-top:14px;font-size:1.02rem;color:var(--ink-soft);font-weight:400;}
+
+  .synopsis{
+    margin-top:36px;background:var(--paper-2);border:1px solid var(--line);border-left:4px solid var(--red);
+    border-radius:4px;padding:30px 32px;
+  }
+  .synopsis .kicker{font-family:var(--serif);font-weight:700;font-size:1.1rem;color:var(--red-deep);display:block;margin-bottom:12px;}
+  .synopsis p{color:var(--ink);font-size:1rem;}
+
+  /* ===== sections ===== */
+  section{padding:64px 0;border-top:1px solid var(--line-soft);}
+  section:first-of-type{border-top:none;}
+  h2.h-title{
+    font-family:var(--serif);font-weight:700;color:var(--ink);
+    font-size:clamp(1.5rem,2.6vw,1.85rem);margin-bottom:10px;
+  }
+  .lead{color:var(--ink-soft);font-size:0.98rem;max-width:600px;margin-bottom:40px;}
+
+  /* ===== character cards ===== */
+  .char-card{
+    background:var(--paper-2);border:1px solid var(--line);border-radius:6px;
+    padding:32px 34px;margin-bottom:24px;position:relative;
+  }
+  .char-card::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:4px;border-radius:2px;}
+  .char-card.snow::before{background:var(--ice);}
+  .char-card.bond::before{background:var(--gold);}
+  .char-card.threat::before{background:var(--red);}
+
+  .char-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:12px;margin-bottom:4px;}
+  .char-name{font-family:var(--serif);font-weight:700;font-size:1.5rem;color:var(--ink);}
+  .char-hanja{color:var(--ink-soft);font-size:0.95rem;}
+  .char-role{font-size:0.82rem;font-weight:600;color:var(--ink-soft);margin-bottom:14px;}
+  .char-card.snow .char-role{color:var(--ice);}
+  .char-card.bond .char-role{color:var(--gold);}
+  .char-card.threat .char-role{color:var(--red);}
+
+  .char-quote{
+    font-size:0.95rem;color:var(--ink);background:var(--paper);border-radius:4px;
+    padding:12px 16px;margin-bottom:22px;border:1px solid var(--line-soft);
+  }
+  .meta-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;}
+  .chip{font-size:0.78rem;padding:5px 13px;border:1px solid var(--line);border-radius:20px;color:var(--ink-soft);background:var(--paper);}
+  .status-chip{
+    display:inline-flex;align-items:center;gap:8px;font-size:0.82rem;font-weight:600;color:var(--red-deep);
+    background:var(--red-tint);border:1px solid #e3bdb8;padding:7px 16px;border-radius:20px;margin-bottom:22px;
+  }
+  .status-chip::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--red);}
+
+  .char-body{display:grid;grid-template-columns:1fr 1fr;gap:24px 32px;}
+  .char-block h4{font-size:0.78rem;font-weight:700;letter-spacing:0.06em;color:var(--ink-soft);margin-bottom:10px;text-transform:uppercase;}
+  .char-block ul{list-style:none;display:flex;flex-direction:column;gap:7px;}
+  .char-block li{font-size:0.93rem;color:var(--ink);padding-left:15px;position:relative;}
+  .char-block li::before{content:"–";position:absolute;left:0;color:var(--ink-soft);}
+  .char-block.life{grid-column:1/-1;background:var(--paper);border:1px solid var(--line-soft);border-radius:4px;padding:0 20px;margin-top:4px;}
+  .char-block.life>summary{cursor:pointer;list-style:none;padding:14px 0;font-size:0.78rem;font-weight:700;letter-spacing:0.06em;color:var(--ink-soft);text-transform:uppercase;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+  .char-block.life>summary::-webkit-details-marker{display:none;}
+  .char-block.life>summary::after{content:"펼치기  +";font-size:0.72rem;font-weight:700;letter-spacing:0.02em;color:var(--red);text-transform:none;flex:0 0 auto;}
+  .char-block.life[open]>summary::after{content:"접기  –";}
+  .char-block.life>summary:hover{color:var(--ink);}
+  .char-block.life>summary:hover::after{color:var(--red-deep);}
+  .char-block.life ul{padding-bottom:18px;}
+  .dl-row{display:flex;gap:10px;font-size:0.93rem;margin-bottom:8px;}
+  .dl-row dt{flex:0 0 50px;color:var(--ink-soft);font-weight:600;}
+  .dl-row dd{color:var(--ink);}
+
+  /* ===== synopsis term tooltip ===== */
+  .term{position:relative;color:var(--red-deep);font-weight:600;border-bottom:1px dashed var(--red);cursor:help;}
+  .term-tip{
+    position:absolute;left:50%;bottom:calc(100% + 10px);transform:translateX(-50%) translateY(4px);
+    width:250px;background:var(--ink);color:var(--paper-2);font-family:var(--sans);font-weight:400;
+    font-size:0.82rem;line-height:1.6;padding:14px 16px;border-radius:6px;
+    box-shadow:0 10px 28px rgba(33,30,26,0.22);opacity:0;pointer-events:none;
+    transition:opacity .16s ease, transform .16s ease;z-index:30;
+  }
+  .term-tip b{display:block;font-family:var(--serif);font-weight:700;font-size:0.9rem;color:#efb8b4;margin-bottom:5px;}
+  .term-tip::after{content:"";position:absolute;top:100%;left:50%;transform:translateX(-50%);border:6px solid transparent;border-top-color:var(--ink);}
+  .term:hover .term-tip,.term:focus .term-tip,.term.show .term-tip{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto;}
+  @media (max-width:560px){.term-tip{width:200px;left:0;transform:translateX(0) translateY(4px);}
+    .term:hover .term-tip,.term:focus .term-tip,.term.show .term-tip{transform:translateX(0) translateY(0);}
+    .term-tip::after{left:24px;}
+  }
+
+  /* ===== relations ===== */
+  .rel-diagram{position:relative;width:100%;max-width:540px;aspect-ratio:600/420;margin:0 auto 48px;}
+  .rel-svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;}
+  .rel-node{
+    position:absolute;transform:translate(-50%,-50%);display:flex;flex-direction:column;
+    align-items:center;gap:5px;transition:transform .2s ease;
+  }
+  .rel-node:hover{transform:translate(-50%,-50%) scale(1.06);}
+  .rel-seal{
+    width:58px;height:58px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font-family:var(--serif);font-weight:700;font-size:1.55rem;border:2px solid;
+    background:var(--paper-2);box-shadow:0 6px 16px rgba(33,30,26,0.10);
+  }
+  .rel-node[data-accent="ice"] .rel-seal{color:var(--ice);border-color:var(--ice);background:var(--ice-tint);}
+  .rel-node[data-accent="gold"] .rel-seal{color:var(--gold);border-color:var(--gold);background:var(--gold-tint);}
+  .rel-node[data-accent="red"] .rel-seal{color:var(--red);border-color:var(--red);background:var(--red-tint);}
+  .rel-node-name{font-family:var(--serif);font-weight:700;font-size:1rem;color:var(--ink);}
+  .rel-node-role{font-size:0.68rem;color:var(--ink-soft);letter-spacing:0.04em;}
+  .rel-edge-label{
+    position:absolute;transform:translate(-50%,-50%);background:var(--paper-2);
+    border:1px solid var(--line);border-radius:20px;padding:6px 15px;font-size:0.78rem;font-weight:600;
+    color:var(--ink-soft);white-space:nowrap;box-shadow:0 2px 8px rgba(33,30,26,0.06);
+  }
+  .rel-edge-label[data-accent="gold"]{color:var(--gold);border-color:#e3d3a8;}
+  .rel-edge-label[data-accent="red"]{color:var(--red-deep);border-color:#e3bdb8;}
+  .rel-edge-label[data-accent="muted"]{color:var(--ink-soft);}
+  .rel-legend{display:flex;gap:18px;justify-content:center;flex-wrap:wrap;margin:-12px 0 40px;font-size:0.78rem;color:var(--ink-soft);}
+  .rel-legend span{display:inline-flex;align-items:center;gap:6px;}
+  .rel-legend .ldot{width:8px;height:8px;border-radius:50%;background:var(--ink-soft);}
+  .rel-legend .larrow{width:14px;height:1px;background:var(--ink-soft);position:relative;}
+  .rel-legend .larrow::after{content:"";position:absolute;right:-1px;top:-2.5px;border:3px solid transparent;border-left-color:var(--ink-soft);}
+
+  .rel-desc{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+  .rel-card{border:1px solid var(--line);background:var(--paper-2);border-radius:6px;padding:18px 18px;position:relative;}
+  .rel-card::before{content:"";position:absolute;left:18px;top:18px;width:8px;height:8px;border-radius:50%;background:var(--gold);}
+  .rel-card.threat::before{background:var(--red);}
+  .rel-card.threat{border-color:#e3bdb8;background:var(--red-tint);}
+  .rel-pair{font-family:var(--serif);font-weight:700;font-size:1rem;color:var(--ink);margin-bottom:4px;padding-left:18px;}
+  .rel-key{font-size:0.78rem;font-weight:600;color:var(--gold);margin-bottom:10px;padding-left:18px;}
+  .rel-card.threat .rel-key{color:var(--red-deep);}
+  .rel-text{font-size:0.88rem;color:var(--ink-soft);line-height:1.65;}
+
+  /* ===== lore ===== */
+  .lore-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  .lore-card{border:1px solid var(--line);background:var(--paper-2);border-radius:6px;padding:26px 26px;}
+  .lore-name{font-family:var(--serif);font-weight:700;font-size:1.2rem;color:var(--ink);margin-bottom:12px;}
+  .lore-card ul{list-style:none;display:flex;flex-direction:column;gap:7px;margin-bottom:16px;}
+  .lore-card li{font-size:0.91rem;color:var(--ink);padding-left:14px;position:relative;}
+  .lore-card li::before{content:"·";position:absolute;left:0;color:var(--ink-soft);}
+  .role-tag{font-size:0.84rem;color:var(--ink);border-top:1px solid var(--line-soft);padding-top:13px;}
+  .role-tag b{display:block;font-size:0.72rem;font-weight:700;letter-spacing:0.08em;color:var(--gold);text-transform:uppercase;margin-bottom:5px;}
+
+  /* ===== spaces ===== */
+  .space-row{display:flex;gap:20px;padding:18px 0;border-bottom:1px solid var(--line-soft);align-items:flex-start;}
+  .space-row:last-child{border-bottom:none;}
+  .space-num{
+    flex:0 0 38px;height:38px;border:1.5px solid var(--red);border-radius:50%;
+    display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-weight:700;color:var(--red);font-size:0.95rem;
+  }
+  .space-name{font-size:1.05rem;font-weight:700;color:var(--ink);margin-bottom:2px;}
+  .space-desc{font-size:0.92rem;color:var(--ink-soft);}
+
+  /* ===== flow ===== */
+  .flow-track{position:relative;padding-left:34px;}
+  .flow-track::before{
+    content:"";position:absolute;left:10px;top:8px;bottom:8px;width:2px;
+    background:linear-gradient(180deg,#a9cfdf 0%, #7e98ab 20%, #545c74 40%, #8d8478 58%, #7a2530 78%, #a8957a 100%);
+    border-radius:2px;
+  }
+  .flow-step{position:relative;padding-bottom:38px;}
+  .flow-step:last-child{padding-bottom:0;}
+  .flow-dot{position:absolute;left:-34px;top:3px;width:21px;height:21px;border-radius:50%;border:3px solid var(--paper);box-shadow:0 0 0 1.5px var(--line);}
+  .flow-tag{display:inline-block;font-size:0.74rem;font-weight:700;letter-spacing:0.06em;padding:3px 11px;border-radius:20px;margin-bottom:10px;}
+  .flow-space{font-size:0.85rem;color:var(--ink-soft);margin-bottom:5px;font-weight:600;}
+  .flow-perception{font-family:var(--serif);font-weight:700;font-size:1.1rem;color:var(--ink);margin-bottom:6px;}
+  .flow-emotion{
+    display:inline-flex;align-items:center;gap:8px;margin-top:6px;
+    font-family:var(--serif);font-weight:700;font-size:1.08rem;letter-spacing:0.01em;
+    padding:7px 18px;border-radius:20px;
+  }
+  .flow-emotion::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;opacity:0.75;}
+
+  /* ===== graphic ===== */
+  .gfx-grid{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-bottom:36px;}
+  .gfx-block h4{font-size:0.78rem;font-weight:700;letter-spacing:0.06em;color:var(--ink-soft);margin-bottom:10px;text-transform:uppercase;}
+  .gfx-block p{font-size:0.98rem;color:var(--ink);}
+  .tag-row{display:flex;gap:9px;flex-wrap:wrap;}
+  .tag{font-size:0.85rem;padding:6px 15px;border:1px solid var(--line);border-radius:20px;color:var(--ink);background:var(--paper-2);}
+  .goal-list{list-style:none;display:flex;flex-direction:column;gap:12px;}
+  .goal-list li{font-size:0.96rem;color:var(--ink);padding-left:24px;position:relative;}
+  .goal-list li::before{content:"";position:absolute;left:0;top:9px;width:10px;height:2px;background:var(--red);}
+
+  footer{padding:50px 0 60px;text-align:center;}
+  .foot-mark{font-family:var(--serif);font-weight:700;color:var(--ink-soft);font-size:0.88rem;}
+  .foot-sub{margin-top:6px;color:var(--line);font-size:0.74rem;letter-spacing:0.08em;text-transform:uppercase;}
+
+  /* ===== responsive ===== */
+  @media (max-width:1000px){
+    .toc{display:none;}
+    main.doc{border-left:none;}
+    .mobile-bar{
+      display:flex;position:sticky;top:0;z-index:5;background:var(--paper);
+      border-bottom:1px solid var(--line);overflow-x:auto;padding:14px 18px;gap:18px;
+      -webkit-overflow-scrolling:touch;
+    }
+    .mobile-bar a{flex:0 0 auto;font-size:0.82rem;color:var(--ink-soft);text-decoration:none;white-space:nowrap;font-weight:500;}
+    .mobile-bar a.active{color:var(--red);font-weight:700;}
+    .container{padding:0 24px;}
+  }
+  @media (max-width:680px){
+    .char-body{grid-template-columns:1fr;}
+    .lore-grid{grid-template-columns:1fr;}
+    .gfx-grid{grid-template-columns:1fr;}
+    .rel-desc{grid-template-columns:1fr;}
+    h1.title{font-size:2rem;}
+    .rel-seal{width:44px;height:44px;font-size:1.2rem;}
+    .rel-node-name{font-size:0.86rem;}
+    .rel-node-role{font-size:0.6rem;}
+    .rel-edge-label{font-size:0.68rem;padding:5px 10px;}
+    .rel-diagram{max-width:340px;}
+  }
+  :focus-visible{outline:2px solid var(--red);outline-offset:2px;}
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- DESKTOP SIDEBAR TOC -->
+  <nav class="toc" aria-label="목차">
+    <div class="toc-mark">설녀</div>
+    <div class="toc-sub">잊혀진 설산의 수호자</div>
+    <ul class="toc-list">
+      <li><a href="#synopsis"><span class="num">00</span>시놉시스</a></li>
+      <li><a href="#characters"><span class="num">01</span>인물</a></li>
+      <li><a href="#relations"><span class="num">02</span>인물 관계</a></li>
+      <li><a href="#lore"><span class="num">03</span>세계관 용어</a></li>
+      <li><a href="#spaces"><span class="num">04</span>공간 구성</a></li>
+      <li><a href="#flow"><span class="num">05</span>서사 흐름</a></li>
+      <li><a href="#graphic"><span class="num">06</span>그래픽 컨셉</a></li>
+    </ul>
+    <div class="toc-foot">雪 · Narrative Concept Doc</div>
+  </nav>
+
+  <!-- MOBILE NAV -->
+  <nav class="mobile-bar" aria-label="목차">
+    <a href="#synopsis">시놉시스</a>
+    <a href="#characters">인물</a>
+    <a href="#relations">인물 관계</a>
+    <a href="#lore">세계관 용어</a>
+    <a href="#spaces">공간 구성</a>
+    <a href="#flow">서사 흐름</a>
+    <a href="#graphic">그래픽 컨셉</a>
+  </nav>
+
+  <main class="doc">
+    <div class="container">
+
+      <!-- SYNOPSIS / HERO -->
+      <section id="synopsis">
+        <div class="hero reveal">
+          <div class="eyebrow">Level Design Narrative Concept</div>
+          <h1 class="title">설녀</h1>
+          <p class="title-sub">잊혀진 설산의 수호자</p>
+          <p class="intro">수많은 사람을 죽이고 설산의 재앙이 된 설녀는 정말 <span class="emph">모두가 말하는 괴물</span>이었을까. 당신은 설녀를 모시던 어린 무녀 치요와 함께 설산에 번져가는 붉은 흔적을 쫓는다. 그 여정 속에서, 모든 사건의 진실이 서서히 모습을 드러낸다.</p>
+
+          <div class="synopsis">
+            <span class="kicker">시놉시스</span>
+            <p>
+              설산 성역의 신사에서 무녀들과 공존하며 수호자로 살아온 설녀. 어느 날 도착한 소포 속 붉은 꽃잎으로 끓인 차를 마신 뒤 원인 모를 쇠약이 시작된다.
+              무녀들이 수소문 끝에 불러들인 약사는 원인이 <span class="term" tabindex="0">흡혈꽃<span class="term-tip"><b>흡혈꽃</b>어떤 피든 흡수하면 달콤한 향을 내뿜는 식물. 약사가 인간의 피를 흡수시킨 상태로 설녀에게 전달했다.</span></span>에 있다고 밝히지만, 시간이 지나 설녀는 결국 <span class="term" tabindex="0">폭주<span class="term-tip"><b>폭주 요괴</b>요괴가 인간의 피를 섭취했을 때 일어나는 상태 변화. 자아 붕괴와 통제 불가능한 힘을 동반한다.</span></span>해 신사와 마을을 혼란에 빠뜨린다.
+              눈보라와 압도적인 힘 앞에 속수무책이었던 마을 사람들은 설녀를 <span class="term" tabindex="0">봉인탑<span class="term-tip"><b>봉인탑</b>설산 곳곳에 분산 건설된 봉인 장치. 모든 봉요석을 제거해야 결계가 무너진다.</span></span>에 가두고, 희생자들은 <span class="term" tabindex="0">설귀<span class="term-tip"><b>설귀 雪鬼</b>설녀의 폭주로 희생된 이들이 죽음 이후 변이된 형태. 이성을 거의 잃고 성역을 벗어나지 못한다.</span></span>가 되어 성역을 떠돈다.
+              모두가 설녀를 재앙으로 기억하는 가운데, 유일하게 설녀를 믿는 어린 무녀 치요는 봉인을 풀기로 결심한다.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- CHARACTERS -->
+      <section id="characters">
+        <div class="reveal">
+          <div class="eyebrow">Characters</div>
+          <h2 class="h-title">인물 — 세 사람, 세 개의 진실</h2>
+          <p class="lead">같은 사건을 서로 다른 위치에서 통과하는 세 인물. 생활 습관까지 포함한 인물 디테일.</p>
+        </div>
+
+        <div class="reveal">
+          <!-- 설녀 -->
+          <div class="char-card snow">
+            <div class="char-head">
+              <span class="char-name">설녀</span>
+              <span class="char-hanja">雪女</span>
+            </div>
+            <div class="char-role">요괴 · 설산 성역의 수호자적 존재</div>
+            <div class="char-quote">자신의 고통보다 타인의 안전을 우선시하는, 인간과 가장 가까운 감정과 이성을 지닌 특이 개체.</div>
+            <span class="status-chip">현재 상태 — 흡혈꽃으로 인한 폭주 이후 봉인탑에 봉인됨</span>
+
+            <div class="char-body">
+              <div class="char-block">
+                <h4>성격</h4>
+                <ul>
+                  <li>어린아이 같은 순수한 자아, 이타적 성향, 온화함</li>
+                  <li>자신의 고통보다 타인의 안전을 우선시하는 경향</li>
+                  <li>폭주 이전까지는 공격성이 거의 없음</li>
+                </ul>
+              </div>
+              <div class="char-block">
+                <h4>특징</h4>
+                <ul>
+                  <li>인간과 가장 가까운 감정·이성을 지닌 특이 개체</li>
+                  <li>현재 상태 : 흡혈꽃으로 인한 폭주 → 봉인탑에 봉인됨</li>
+                </ul>
+              </div>
+              <details class="char-block life">
+                <summary>생활적 특징</summary>
+                <ul>
+                  <li>물건을 잘 정리하지 않지만 잃어버리지는 않음. 본인만 아는 배치가 있어서 무녀들이 치워주면 오히려 못 찾아서 당황함</li>
+                  <li>좋아하는 음식을 한꺼번에 많이 먹음. 처음 먹어보는 음식에 거부감이 없고 맛있으면 표정으로 바로 티남</li>
+                  <li>수면이 불규칙하고 졸리면 아무 데서나 잠. 무녀들이 이불을 덮어주러 오는 게 일상</li>
+                  <li>물건에 대한 애착이 강하지 않지만 치요에게 받은 것만큼은 소중히 간직함</li>
+                  <li>심심하면 무녀들 일을 따라 하려다 방해가 되거나, 이유 없이 눈을 쌓거나 바람을 일으키며 놂</li>
+                  <li>감정이 얼굴에 바로 드러나서 기분을 숨기지 못함</li>
+                </ul>
+              </details>
+            </div>
+          </div>
+
+          <!-- 치요 -->
+          <div class="char-card bond">
+            <div class="char-head">
+              <span class="char-name">치요</span>
+              <span class="char-hanja">巫女</span>
+            </div>
+            <div class="char-role">무녀 · 설녀와 깊은 유대를 맺은 유일한 생존 무녀</div>
+            <div class="char-quote">설녀의 폭주를 직접 목격했음에도, 그것이 설녀의 의지였다고는 믿지 않는 아이.</div>
+            <div class="meta-chips">
+              <span class="chip">여성 · 10세</span>
+              <span class="chip">이름 의미 — 천 년, 기다림</span>
+            </div>
+
+            <div class="char-body">
+              <div class="char-block">
+                <h4>성격</h4>
+                <ul>
+                  <li>순수하고 감정에 솔직함</li>
+                  <li>설녀에 대한 절대적인 신뢰와 애정</li>
+                  <li>주변의 판단보다 자신의 경험을 믿는 강한 신념</li>
+                  <li>두려움 속에서도 행동을 멈추지 않는 집요함</li>
+                </ul>
+              </div>
+              <div class="char-block">
+                <h4>특징</h4>
+                <ul>
+                  <li>설녀의 폭주를 직접 목격했음에도 그것이 설녀의 의지라고 믿지 않음</li>
+                  <li>사건 이후 신사를 떠나지 않은 유일한 인물. 현재 봉인 해제를 시도 중</li>
+                </ul>
+              </div>
+              <details class="char-block life">
+                <summary>생활적 특징</summary>
+                <ul>
+                  <li>자기 물건은 깔끔하게 정리함. 무녀로서 훈련된 습관이며 설녀 주변도 몰래 챙겨서 치워줌</li>
+                  <li>설녀와 함께 있을 때는 밥보다 설녀 반응 구경에 집중하고, 좋아하는 음식을 설녀에게 먼저 줌</li>
+                  <li>설녀 옆에서 잠깐 쉬는 거라고 우기다가 완전히 잠든 적이 많음. 걱정이 많을 때는 잠을 못 이루고 뒤척임</li>
+                  <li>설녀에게 받은 물건을 가장 소중히 다루고, 작은 부적이나 의식 도구를 항상 몸에 지님</li>
+                  <li>무서운 상황에서도 일단 움직이고 나중에 무서워함</li>
+                  <li>설녀의 표정 변화를 누구보다 빨리 알아채고, 혼자 있을 때 설녀에 대한 말을 중얼거리는 습관이 있음</li>
+                </ul>
+              </details>
+            </div>
+          </div>
+
+          <!-- 약사 -->
+          <div class="char-card threat">
+            <div class="char-head">
+              <span class="char-name">약사</span>
+            </div>
+            <div class="char-role">공작 인물 · 요괴 폭주를 유도하기 위해 파견됨</div>
+            <div class="char-quote">치밀하고 계획적이며, 결과를 위해 과정과 희생을 전혀 고려하지 않는 자.</div>
+
+            <div class="char-body">
+              <div class="char-block">
+                <h4>성격</h4>
+                <ul>
+                  <li>치밀하고 계획적. 감정을 철저히 배제한 채 목표만을 추구</li>
+                  <li>타인을 속이는 것에 거리낌 없는 기만적 성향</li>
+                  <li>결과를 위해 과정과 희생을 전혀 고려하지 않음</li>
+                </ul>
+              </div>
+              <div class="char-block">
+                <h4>특징</h4>
+                <dl>
+                  <div class="dl-row"><dt>소속</dt><dd>세상을 혼란에 빠뜨리려는 특정 단체</dd></div>
+                  <div class="dl-row"><dt>행적</dt><dd>소포(흡혈꽃) 발송 → 신사에 직접 개입하지 않고 간접 접근 → 치료자로 위장해 침투 → 목적 달성 후 잠적</dd></div>
+                </dl>
+              </div>
+              <details class="char-block life">
+                <summary>생활적 특징</summary>
+                <ul>
+                  <li>작업 공간은 철저하게 정리되어 있으며 도구와 재료의 위치를 전부 외우고 있음. 단, 자신만 알아볼 수 있는 기준이라 타인에게는 어지러워 보일 수 있음</li>
+                  <li>모든 소지품이 목적 중심. 불필요한 물건은 소유하지 않으며 관찰한 내용을 수시로 메모하는 습관이 있음</li>
+                  <li>불필요한 감정 표현을 하지 않아서 처음엔 친절해 보이기도 함. 익숙하지 않은 감정이 올라오면 행동으로 무시해버림</li>
+                </ul>
+              </details>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RELATIONS -->
+      <section id="relations">
+        <div class="reveal">
+          <div class="eyebrow">Relationships</div>
+          <h2 class="h-title">인물 관계 — 세 개의 축</h2>
+          <p class="lead">감정의 중심, 사건의 가해, 그리고 진실을 모른 채 이어지는 신뢰. 세 관계가 서사 전체를 지탱한다.</p>
+        </div>
+
+        <div class="reveal">
+          <div class="rel-diagram">
+            <svg class="rel-svg" viewBox="0 0 600 420">
+              <defs>
+                <marker id="arrowRed" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                  <path d="M0,0 L10,5 L0,10 Z" fill="#a02b2f"/>
+                </marker>
+                <marker id="arrowMuted" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                  <path d="M0,0 L10,5 L0,10 Z" fill="#9c8f7e"/>
+                </marker>
+                <marker id="dotGold" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="5" markerHeight="5">
+                  <circle cx="5" cy="5" r="4" fill="#c9ad5e"/>
+                </marker>
+              </defs>
+
+              <!-- 설녀 ↔ 치요 : 상호적 유대 (양끝 점) -->
+              <line x1="241.9" y1="135.2" x2="114.6" y2="299.7" stroke="#c9ad5e" stroke-width="2"
+                    marker-start="url(#dotGold)" marker-end="url(#dotGold)"/>
+              <!-- 약사 → 설녀 : 가해 (단방향 화살표) -->
+              <line x1="485.4" y1="299.7" x2="358.1" y2="135.2" stroke="#a02b2f" stroke-width="2.2"
+                    marker-end="url(#arrowRed)"/>
+              <!-- 약사 → 치요 : 간접적 기만 (점선 화살표) -->
+              <line x1="473" y1="325" x2="127" y2="325" stroke="#9c8f7e" stroke-width="1.8"
+                    stroke-dasharray="2 7" marker-end="url(#arrowMuted)"/>
+            </svg>
+
+            <div class="rel-node" data-accent="ice" style="left:50%;top:14%;">
+              <div class="rel-seal">雪</div>
+              <div class="rel-node-name">설녀</div>
+              <div class="rel-node-role">요괴</div>
+            </div>
+            <div class="rel-node" data-accent="gold" style="left:16%;top:78%;">
+              <div class="rel-seal">巫</div>
+              <div class="rel-node-name">치요</div>
+              <div class="rel-node-role">무녀</div>
+            </div>
+            <div class="rel-node" data-accent="red" style="left:84%;top:78%;">
+              <div class="rel-seal">薬</div>
+              <div class="rel-node-name">약사</div>
+              <div class="rel-node-role">공작</div>
+            </div>
+
+            <div class="rel-edge-label" data-accent="gold" style="left:32.9%;top:45.8%;">보호자 ↔ 유대</div>
+            <div class="rel-edge-label" data-accent="red" style="left:67.1%;top:45.8%;">피해자 ↔ 가해자</div>
+            <div class="rel-edge-label" data-accent="muted" style="left:50%;top:77.4%;">간접적 기만</div>
+          </div>
+
+          <div class="rel-legend">
+            <span><i class="ldot"></i> 점 — 상호적 유대</span>
+            <span><i class="larrow"></i> 화살표 — 한쪽이 다른 쪽에 가하는 영향</span>
+          </div>
+
+          <div class="rel-desc">
+            <div class="rel-card">
+              <div class="rel-pair">설녀 ↔ 치요</div>
+              <div class="rel-key">보호자 ↔ 유대</div>
+              <p class="rel-text">이야기의 감정 중심축. 설녀는 치요를 지켜야 할 존재로, 치요는 설녀를 가족 같은 존재로 인식. 폭주 이후에도 치요는 설녀를 믿음.</p>
+            </div>
+            <div class="rel-card threat">
+              <div class="rel-pair">설녀 ↔ 약사</div>
+              <div class="rel-key">피해자 ↔ 가해자</div>
+              <p class="rel-text">설녀는 약사의 계획에 의해 조작된 완전한 피해자.</p>
+            </div>
+            <div class="rel-card">
+              <div class="rel-pair">치요 ↔ 약사</div>
+              <div class="rel-key">간접적 기만</div>
+              <p class="rel-text">치요는 진실을 모른 채 설녀만을 바라보는 상태.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- LORE -->
+      <section id="lore">
+        <div class="reveal">
+          <div class="eyebrow">Terminology</div>
+          <h2 class="h-title">세계관 용어 — 사건을 이루는 네 개의 장치</h2>
+          <p class="lead">하나의 식물에서 시작된 비극이 세계관의 규칙으로 확장되는 과정.</p>
+        </div>
+
+        <div class="lore-grid reveal">
+          <div class="lore-card">
+            <div class="lore-name">흡혈꽃</div>
+            <ul>
+              <li>어떤 피든 흡수 가능하며, 피를 흡수하면 달콤한 향을 내뿜는 식물. 외형과 성질 자체는 단순한 식물에 가까움</li>
+              <li>약사가 인간의 피를 흡수시킨 상태로 설녀에게 전달</li>
+            </ul>
+            <div class="role-tag"><b>서사 역할</b>폭주가 외부 개입으로 유도되었음을 보여주는 핵심 단서</div>
+          </div>
+          <div class="lore-card">
+            <div class="lore-name">폭주 요괴</div>
+            <ul>
+              <li>요괴가 인간의 피를 섭취했을 때 발생하는 상태 변화</li>
+              <li>자아 붕괴, 이성 상실, 통제 불가능한 강한 힘. 인간의 피에 대한 강한 집착을 보임</li>
+            </ul>
+            <div class="role-tag"><b>서사 역할</b>약사의 개입이 만들어낸 결과. 세계관 내 '재앙'의 기준</div>
+          </div>
+          <div class="lore-card">
+            <div class="lore-name">설귀 <span style="color:var(--ink-soft);font-size:0.9rem;font-weight:400;">雪鬼</span></div>
+            <ul>
+              <li>설녀의 폭주로 희생된 이들이 죽음 이후 변이된 형태</li>
+              <li>설녀의 힘 일부를 공유하며 이성을 거의 상실. 설산 성역을 벗어나지 못함</li>
+            </ul>
+            <div class="role-tag"><b>서사 역할</b>봉인이 완전한 해결이 아님을 드러내는 요소</div>
+          </div>
+          <div class="lore-card">
+            <div class="lore-name">봉인탑</div>
+            <ul>
+              <li>설산 곳곳에 분산 건설된 봉인 장치</li>
+              <li>작동 — 봉요석 활성화 → 신사 결계 형성 → 설녀 내부 고립. 외부와 내부의 이동 및 간섭이 차단되며 내부 존재는 스스로 탈출 불가능</li>
+              <li>해제 조건 — 모든 봉인탑의 봉요석 제거 시 결계 붕괴</li>
+            </ul>
+            <div class="role-tag"><b>서사 역할</b>유예된 결말. 언제든 다시 열릴 수 있는 갈등</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SPACES -->
+      <section id="spaces">
+        <div class="reveal">
+          <div class="eyebrow">Play Concept</div>
+          <h2 class="h-title">공간 구성 — 6개의 장소</h2>
+          <p class="lead">성역 입구에서 신사까지, 플레이어가 물리적으로 통과하는 순서가 곧 인식이 바뀌는 순서다.</p>
+        </div>
+
+        <div class="reveal">
+          <div class="space-row">
+            <div class="space-num">01</div>
+            <div><div class="space-name">성역 입구</div><div class="space-desc">설산 성역으로 들어가는 입구</div></div>
+          </div>
+          <div class="space-row">
+            <div class="space-num">02</div>
+            <div><div class="space-name">외곽길</div><div class="space-desc">참배자들이 신사로 향하며 거치는 길</div></div>
+          </div>
+          <div class="space-row">
+            <div class="space-num">03</div>
+            <div><div class="space-name">신사 입구</div><div class="space-desc">신사 본전 앞에 다다른 관문. 압도적인 규모 앞에서 설녀의 봉인을 직감하게 되는 공간</div></div>
+          </div>
+          <div class="space-row">
+            <div class="space-num">04</div>
+            <div><div class="space-name">무녀 거주지</div><div class="space-desc">무녀들의 생활 및 카구라(神楽) 준비 공간. 설녀를 신성시한 흔적 존재</div></div>
+          </div>
+          <div class="space-row">
+            <div class="space-num">05</div>
+            <div><div class="space-name">약사 서재</div><div class="space-desc">약사가 치료자로 위장해 머물며 남긴 관찰 기록과 연구 흔적이 보관된 공간</div></div>
+          </div>
+          <div class="space-row">
+            <div class="space-num">06</div>
+            <div><div class="space-name">신사 내부</div><div class="space-desc">설녀 참배 공간. 현재는 봉인된 설녀가 있는 곳</div></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FLOW -->
+      <section id="flow">
+        <div class="reveal">
+          <div class="eyebrow">Player Perception Arc</div>
+          <h2 class="h-title">서사 경험 흐름 — 오인 → 의심 → 진실</h2>
+          <p class="lead">플레이어 스스로 인식의 변화를 경험하도록 설계된 6단계. 노드의 색이 평온한 눈빛에서 짙은 핏빛을 지나 텅 빈 잿빛으로 번져가는 만큼, 플레이어의 마음도 함께 흔들린다.</p>
+        </div>
+
+        <div class="reveal">
+          <div class="flow-track">
+
+            <div class="flow-step">
+              <span class="flow-dot" style="background:#a9cfdf;"></span>
+              <span class="flow-tag" style="background:#e3eef3;color:#2f5a72;">오인</span>
+              <div class="flow-space">성역 입구</div>
+              <div class="flow-perception">"괴물을 처치해야 한다."</div>
+              <div class="flow-emotion" style="background:#e3eef3;color:#2f5a72;">평화로움</div>
+            </div>
+
+            <div class="flow-step">
+              <span class="flow-dot" style="background:#7e98ab;"></span>
+              <span class="flow-tag" style="background:#dbe5ea;color:#3a5468;">오인</span>
+              <div class="flow-space">외곽길</div>
+              <div class="flow-perception">"괴물은 위험한 존재다."</div>
+              <div class="flow-emotion" style="background:#dbe5ea;color:#3a5468;">불안감</div>
+            </div>
+
+            <div class="flow-step">
+              <span class="flow-dot" style="background:#545c74;"></span>
+              <span class="flow-tag" style="background:#e2e1ea;color:#3f4560;">오인</span>
+              <div class="flow-space">신사 입구</div>
+              <div class="flow-perception">"이곳이 설녀가 봉인된 신사인가?"</div>
+              <div class="flow-emotion" style="background:#e2e1ea;color:#3f4560;">압도감</div>
+            </div>
+
+            <div class="flow-step">
+              <span class="flow-dot" style="background:#8d8478;"></span>
+              <span class="flow-tag" style="background:#ece6d9;color:#5c5340;">의심</span>
+              <div class="flow-space">무녀 거주지</div>
+              <div class="flow-perception">"수호신이었다고? 왜 괴물이 됐지?"</div>
+              <div class="flow-emotion" style="background:#ece6d9;color:#5c5340;">고요함</div>
+            </div>
+
+            <div class="flow-step">
+              <span class="flow-dot" style="background:#7a2530;"></span>
+              <span class="flow-tag" style="background:var(--red-tint);color:var(--red-deep);">진실</span>
+              <div class="flow-space">약사 서재</div>
+              <div class="flow-perception">"이건 인간이 만든 비극이다."</div>
+              <div class="flow-emotion" style="background:var(--red-tint);color:var(--red-deep);">참담함</div>
+            </div>
+
+            <div class="flow-step">
+              <span class="flow-dot" style="background:#a8957a;"></span>
+              <span class="flow-tag" style="background:#ece4d4;color:#7c6f56;">진실</span>
+              <div class="flow-space">신사 내부</div>
+              <div class="flow-perception">"아직도 일부는 수호신이다."</div>
+              <div class="flow-emotion" style="background:#ece4d4;color:#7c6f56;">공허함</div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      <!-- GRAPHIC -->
+      <section id="graphic">
+        <div class="reveal">
+          <div class="eyebrow">Art Direction</div>
+          <h2 class="h-title">그래픽 컨셉 — 눈, 절벽, 피, 신사</h2>
+        </div>
+
+        <div class="gfx-grid reveal">
+          <div class="gfx-block">
+            <h4>스타일</h4>
+            <p>반실사 스타일라이즈</p>
+          </div>
+          <div class="gfx-block">
+            <h4>레퍼런스</h4>
+            <div class="tag-row">
+              <span class="tag">명일방주: 엔드필드</span>
+              <span class="tag">실버 팰리스</span>
+            </div>
+          </div>
+          <div class="gfx-block" style="grid-column:1/-1;">
+            <h4>핵심 키워드</h4>
+            <div class="tag-row">
+              <span class="tag">눈</span><span class="tag">절벽</span><span class="tag">피</span><span class="tag">신사</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="reveal">
+          <h4 style="font-size:0.78rem;font-weight:700;letter-spacing:0.06em;color:var(--ink-soft);margin-bottom:14px;text-transform:uppercase;">목표 결과물</h4>
+          <ul class="goal-list">
+            <li>연출이 포함된 5공간 레벨</li>
+            <li>레벨 영상물</li>
+            <li>개별 연구 결론</li>
+          </ul>
+        </div>
+      </section>
+
+      <footer class="reveal">
+        <div class="foot-mark">雪 — 설녀, 잊혀진 설산의 수호자</div>
+        <div class="foot-sub">Game Level Design Portfolio · Narrative Concept Document</div>
+      </footer>
+
+    </div>
+  </main>
+</div>
+
+<script>
+  // reveal on scroll
+  (function(){
+    var els = document.querySelectorAll('.reveal');
+    if(!('IntersectionObserver' in window)){ els.forEach(function(e){e.classList.add('in');}); return; }
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){ if(en.isIntersecting){en.target.classList.add('in');io.unobserve(en.target);} });
+    },{threshold:0.08});
+    els.forEach(function(e){io.observe(e);});
+  })();
+
+  // scrollspy for TOC
+  (function(){
+    var sections = document.querySelectorAll('main section[id]');
+    var deskLinks = document.querySelectorAll('.toc-list a');
+    var mobLinks = document.querySelectorAll('.mobile-bar a');
+    function setActive(id){
+      deskLinks.forEach(function(a){a.classList.toggle('active', a.getAttribute('href')==='#'+id);});
+      mobLinks.forEach(function(a){
+        var on = a.getAttribute('href')==='#'+id;
+        a.classList.toggle('active', on);
+        if(on) a.scrollIntoView({block:'nearest', inline:'center', behavior:'smooth'});
+      });
+    }
+    if(!('IntersectionObserver' in window)) return;
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){ if(en.isIntersecting) setActive(en.target.id); });
+    },{rootMargin:'-20% 0px -70% 0px'});
+    sections.forEach(function(s){io.observe(s);});
+  })();  // synopsis term tooltips (touch support)
+  (function(){
+    var terms = document.querySelectorAll('.term');
+    terms.forEach(function(t){
+      t.addEventListener('click', function(e){
+        e.stopPropagation();
+        var isShown = t.classList.contains('show');
+        terms.forEach(function(o){o.classList.remove('show');});
+        if(!isShown) t.classList.add('show');
+      });
+    });
+    document.addEventListener('click', function(){
+      terms.forEach(function(o){o.classList.remove('show');});
+    });
+  })();
+</script>
+
+</body>
+</html>
