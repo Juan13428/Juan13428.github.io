@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>사후관리 어플 — 답장 합성 프로토타입</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-void:#070a10;
+    --bg-panel:#0f141d;
+    --bg-bubble-in:#1a212e;
+    --bg-bubble-out:#10282a;
+    --accent:#56e8c9;
+    --accent-soft:rgba(86,232,201,0.14);
+    --accent-line:rgba(86,232,201,0.35);
+    --warn:#ff7a85;
+    --warn-soft:rgba(255,122,133,0.14);
+    --text-1:#e9eef6;
+    --text-2:#8c96ab;
+    --text-3:#4c5468;
+    --track:#161c28;
+    --font-mono:'IBM Plex Mono', monospace;
+    --font-kr:'Noto Sans KR', sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg-void);
+    color:var(--text-1);
+    font-family:var(--font-kr);
+    display:flex;
+    justify-content:center;
+    padding:28px 14px 60px;
+    min-height:100vh;
+  }
+  .device{
+    width:100%;
+    max-width:408px;
+  }
+
+  /* status strip */
+  .statusbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    font-family:var(--font-mono);
+    font-size:10.5px;
+    letter-spacing:0.08em;
+    color:var(--text-3);
+    padding:0 4px 10px;
+  }
+  .statusbar .dot{
+    width:6px;height:6px;border-radius:50%;
+    background:var(--accent);
+    display:inline-block;
+    margin-right:6px;
+    box-shadow:0 0 6px var(--accent);
+    animation:pulse 2.4s ease-in-out infinite;
+  }
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.35;}}
+
+  /* contact header */
+  .contact{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:12px 14px;
+    background:var(--bg-panel);
+    border-radius:16px 16px 0 0;
+    border:1px solid #1a212e;
+    border-bottom:none;
+  }
+  .avatar{
+    width:34px;height:34px;border-radius:50%;
+    background:linear-gradient(140deg,#28384a,#1a212e);
+    display:flex;align-items:center;justify-content:center;
+    font-size:13px;font-weight:700;color:var(--text-2);
+    flex-shrink:0;
+  }
+  .contact-name{font-size:14px;font-weight:700;}
+  .contact-sub{font-size:10.5px;color:var(--text-3);font-family:var(--font-mono);margin-top:1px;}
+
+  /* chat surface */
+  .chat{
+    background:var(--bg-panel);
+    border:1px solid #1a212e;
+    border-top:none;
+    padding:16px 14px 14px;
+    min-height:120px;
+  }
+  .bubble-row{display:flex;margin-bottom:10px;}
+  .bubble-row.in{justify-content:flex-start;}
+  .bubble-row.out{justify-content:flex-end;}
+  .bubble{
+    max-width:82%;
+    padding:10px 13px;
+    border-radius:14px;
+    font-size:13.5px;
+    line-height:1.5;
+    opacity:0;
+    transform:translateY(6px);
+    animation:rise 0.45s ease forwards;
+  }
+  @keyframes rise{to{opacity:1;transform:translateY(0);}}
+  .bubble.in{background:var(--bg-bubble-in);color:var(--text-1);border-bottom-left-radius:4px;}
+  .bubble.out{
+    background:var(--bg-bubble-out);
+    color:#d8fff3;
+    border:1px solid var(--accent-line);
+    border-bottom-right-radius:4px;
+  }
+  .bubble .slot{
+    cursor:pointer;
+    border-radius:4px;
+    padding:0 2px;
+    margin:0 -2px;
+    transition:background 0.15s ease;
+  }
+  .bubble .slot:hover{background:rgba(255,255,255,0.06);}
+  .bubble .blank{
+    display:inline-block;
+    min-width:30px;
+    border-bottom:1px solid var(--text-3);
+    color:var(--text-3);
+  }
+  .bubble .blank.active{
+    color:var(--accent);
+    border-bottom:1px solid var(--accent);
+    animation:blink 1.1s ease-in-out infinite;
+  }
+  @keyframes blink{0%,100%{opacity:1;}50%{opacity:0.4;}}
+  .bubble .filled{color:var(--accent);font-weight:700;}
+  .bubble .filled.editing{
+    border-bottom:1px dashed var(--accent);
+    background:var(--accent-soft);
+  }
+  #sentence.locked .slot{
+    cursor:default;
+    pointer-events:none;
+  }
+  #sentence.locked .slot:hover{background:none;}
+
+  .draft-tag{
+    font-family:var(--font-mono);
+    font-size:9.5px;
+    letter-spacing:0.1em;
+    color:var(--accent);
+    text-transform:uppercase;
+    margin:2px 0 6px 1px;
+    opacity:0.85;
+  }
+
+  /* progress */
+  .progress{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    padding:12px 14px 0;
+    font-family:var(--font-mono);
+  }
+  .progress .step{
+    flex:1;
+    height:3px;
+    border-radius:3px;
+    background:var(--track);
+    overflow:hidden;
+  }
+  .progress .step.done .fill{width:100%;}
+  .progress .step.live .fill{width:100%;animation:fillin 0.4s ease;}
+  .progress .fill{height:100%;width:0%;background:var(--accent);}
+  @keyframes fillin{from{width:0%;}to{width:100%;}}
+  .progress-label{
+    font-size:10px;color:var(--text-3);padding:6px 14px 0;letter-spacing:0.05em;
+  }
+
+  /* picker panel */
+  .panel{
+    background:var(--bg-panel);
+    border:1px solid #1a212e;
+    border-top:1px dashed #232c3b;
+    padding:14px 14px 16px;
+  }
+  .panel-head{
+    display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;
+  }
+  .panel-title{font-size:12px;font-weight:700;color:var(--text-2);letter-spacing:0.02em;}
+  .panel-hint{font-family:var(--font-mono);font-size:9.5px;color:var(--text-3);}
+
+  .wheel-wrap{
+    position:relative;
+    height:240px;
+    border-radius:12px;
+    background:linear-gradient(180deg,#0b0f16,#0d1118 50%,#0b0f16);
+    overflow:hidden;
+    border:1px solid #1a212e;
+  }
+  .selection-band{
+    position:absolute;
+    top:50%;left:0;right:0;
+    height:46px;
+    transform:translateY(-50%);
+    background:var(--accent-soft);
+    border-top:1px solid var(--accent-line);
+    border-bottom:1px solid var(--accent-line);
+    pointer-events:none;
+    z-index:2;
+  }
+  .fade-mask{
+    position:absolute;inset:0;
+    pointer-events:none;
+    z-index:3;
+    background:linear-gradient(180deg, var(--bg-panel) 0%, transparent 28%, transparent 72%, var(--bg-panel) 100%);
+    opacity:0.92;
+  }
+  .wheel{
+    position:relative;
+    height:100%;
+    overflow-y:auto;
+    scroll-snap-type:y mandatory;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+  }
+  .wheel::-webkit-scrollbar{display:none;}
+  .spacer{height:92px;flex-shrink:0;}
+  .row{
+    height:46px;
+    scroll-snap-align:center;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:0 14px;
+    transform:scale(0.86);
+    opacity:0.34;
+    transition:transform 0.15s ease, opacity 0.15s ease;
+    cursor:pointer;
+  }
+  .row.active{
+    transform:scale(1);
+    opacity:1;
+  }
+  .row .word{
+    font-size:15px;font-weight:500;color:var(--text-2);min-width:64px;
+  }
+  .row.active .word{color:var(--text-1);font-weight:700;}
+  .row .bar-track{
+    flex:1;height:6px;border-radius:4px;background:var(--track);overflow:hidden;
+  }
+  .row .bar-fill{
+    height:100%;border-radius:4px;background:var(--text-3);
+  }
+  .row.active .bar-fill{background:var(--accent);box-shadow:0 0 8px var(--accent-line);}
+  .row .pct{
+    font-family:var(--font-mono);font-size:11px;color:var(--text-3);min-width:34px;text-align:right;
+  }
+  .row.active .pct{color:var(--accent);font-weight:600;}
+
+  .wheel-controls{
+    display:flex;justify-content:center;gap:10px;margin-top:10px;
+  }
+  .nudge{
+    width:30px;height:30px;border-radius:50%;
+    background:var(--track);border:1px solid #232c3b;
+    color:var(--text-2);font-size:13px;
+    display:flex;align-items:center;justify-content:center;
+    cursor:pointer;user-select:none;
+  }
+  .nudge:hover{background:#1c2434;color:var(--text-1);}
+
+  .confirm-row{margin-top:14px;}
+  button.cta{
+    width:100%;
+    padding:13px;
+    border-radius:10px;
+    border:none;
+    font-family:var(--font-kr);
+    font-weight:700;
+    font-size:13.5px;
+    cursor:pointer;
+    background:var(--accent);
+    color:#06241f;
+    letter-spacing:0.01em;
+    transition:filter 0.15s ease, transform 0.1s ease;
+  }
+  button.cta:active{transform:scale(0.985);}
+  button.cta:hover{filter:brightness(1.07);}
+  button.cta.ghost{
+    background:transparent;
+    border:1px solid var(--accent-line);
+    color:var(--accent);
+  }
+  button.cta.ghost:hover{background:var(--accent-soft);}
+
+  /* in-character reply (typing indicator + post-reply control) */
+  .bubble.typing{
+    display:flex;
+    align-items:center;
+    gap:4px;
+    padding:13px 16px;
+  }
+  .bubble.typing span{
+    width:6px;height:6px;border-radius:50%;
+    background:var(--text-2);
+    display:inline-block;
+    animation:typingBounce 1.2s infinite ease-in-out;
+  }
+  .bubble.typing span:nth-child(2){animation-delay:0.15s;}
+  .bubble.typing span:nth-child(3){animation-delay:0.3s;}
+  @keyframes typingBounce{
+    0%,60%,100%{transform:translateY(0); opacity:0.45;}
+    30%{transform:translateY(-4px); opacity:1;}
+  }
+
+  .post-reply{
+    margin-top:14px;
+    opacity:0;
+    animation:rise 0.4s ease forwards;
+  }
+
+  .fade-enter{opacity:0;animation:rise 0.4s ease forwards;}
+</style>
+</head>
+
+<body>
+
+<div class="device">
+  <div class="statusbar">
+    <span><span class="dot"></span>POSTLIFE-OS · ACTIVE</span>
+    <span id="clock">SYNCING REPLY…</span>
+  </div>
+
+  <div class="contact">
+    <div class="avatar">가은</div>
+    <div>
+      <div class="contact-name">가은</div>
+      <div class="contact-sub">마지막 접속 · 2시간 전</div>
+    </div>
+  </div>
+
+  <div class="chat" id="chat">
+    <div class="bubble-row in">
+      <div class="bubble in">야... 우리 그때 한강 갔던 거 기억나? 정확히 언제였는지는 모르겠는데 그날 진짜 재밌었잖아</div>
+    </div>
+    <div class="draft-tag">draft · 답장 합성 중</div>
+    <div class="bubble-row out">
+      <div class="bubble out" id="sentence"></div>
+    </div>
+  </div>
+
+  <div class="progress" id="progress">
+    <div class="step" data-i="0"><div class="fill"></div></div>
+    <div class="step" data-i="1"><div class="fill"></div></div>
+    <div class="step" data-i="2"><div class="fill"></div></div>
+  </div>
+  <div class="progress-label" id="progressLabel">BLANK 1 / 3 · 후보 단어 예측 중</div>
+
+  <div class="panel" id="panel">
+    <div class="panel-head">
+      <div class="panel-title" id="panelTitle">빈칸을 채울 단어를 선택하세요</div>
+      <div class="panel-hint">scroll · drag</div>
+    </div>
+
+    <div class="wheel-wrap">
+      <div class="fade-mask"></div>
+      <div class="selection-band"></div>
+      <div class="wheel" id="wheel"></div>
+    </div>
+
+    <div class="wheel-controls">
+      <div class="nudge" id="nudgeUp">▲</div>
+      <div class="nudge" id="nudgeDown">▼</div>
+    </div>
+
+    <div class="confirm-row">
+      <button class="cta" id="confirmBtn">이 단어로 확정</button>
+    </div>
+  </div>
+
+  <div class="panel" id="sendPanel" style="display:none;">
+    <button class="cta" id="sendBtn">전송</button>
+  </div>
+
+  <div class="post-reply" id="postReply" style="display:none;">
+    <button class="cta ghost" id="restartBtn">다시 합성하기</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  const ROW_H = 46;
+  const VISIBLE_ROWS = Math.round(240/ROW_H); // ~5
+
+  const blanks = [
+    {
+      key:'b1',
+      prefix:'당연히 기억하지, 그때 한강에서 ',
+      suffix:' 보면서',
+      candidates:[
+        {word:'불꽃놀이', pct:72},
+        {word:'노을', pct:14},
+        {word:'야경', pct:8},
+        {word:'영화', pct:4},
+        {word:'비둘기', pct:2},
+      ]
+    },
+    {
+      key:'b2',
+      prefix:' ',
+      suffix:' 먹고',
+      candidates:[
+        {word:'치킨', pct:58},
+        {word:'라면', pct:21},
+        {word:'떡볶이', pct:12},
+        {word:'맥주', pct:7},
+        {word:'김밥', pct:2},
+      ]
+    },
+    {
+      key:'b3',
+      prefix:' ',
+      suffix:'까지 있었잖아',
+      candidates:[
+        {word:'새벽 3시', pct:49},
+        {word:'자정', pct:27},
+        {word:'막차', pct:16},
+        {word:'해뜰 때', pct:8},
+      ]
+    }
+  ];
+
+  let current = 0;
+  const picked = [null, null, null]; // {word, pct, isTop}
+  const wheelEl = document.getElementById('wheel');
+  const sentenceEl = document.getElementById('sentence');
+  const progressLabel = document.getElementById('progressLabel');
+  const panelTitle = document.getElementById('panelTitle');
+  const confirmBtn = document.getElementById('confirmBtn');
+  const panel = document.getElementById('panel');
+  const sendPanel = document.getElementById('sendPanel');
+  const chatEl = document.getElementById('chat');
+  const postReply = document.getElementById('postReply');
+
+  let activeIndex = 0; // index within current wheel's candidate list
+  let scrollRaf = null;
+  let isStepping = false; // locks wheel input while a one-row step animation runs
+  let isSent = false; // true once the message has been sent; sentence becomes read-only
+
+  function openBlank(i){
+    if(isSent) return;
+    current = i;
+    panel.style.display = 'block';
+    sendPanel.style.display = 'none';
+    buildWheel(i);
+    renderSentence();
+    updateProgress();
+  }
+
+  // Clicking any word (filled or still blank) in the draft jumps the picker
+  // to that blank, so already-confirmed words can be re-picked at any time.
+  sentenceEl.addEventListener('click', (e) => {
+    const slot = e.target.closest('.slot');
+    if(!slot) return;
+    openBlank(parseInt(slot.dataset.bi, 10));
+  });
+
+  function stepCount(){
+    return blanks[current].candidates.length;
+  }
+
+  function animateToIndex(targetIndex){
+    const max = stepCount() - 1;
+    const clamped = Math.max(0, Math.min(max, targetIndex));
+    const startTop = wheelEl.scrollTop;
+    const endTop = clamped * ROW_H;
+    if(startTop === endTop){ isStepping = false; return; }
+
+    isStepping = true;
+    const duration = 190;
+    const startTime = performance.now();
+
+    function frame(now){
+      const t = Math.min(1, (now - startTime) / duration);
+      const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
+      wheelEl.scrollTop = startTop + (endTop - startTop) * eased;
+      if(t < 1){
+        requestAnimationFrame(frame);
+      } else {
+        wheelEl.scrollTop = endTop;
+        updateActiveRow();
+        isStepping = false;
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  function renderSentence(){
+    let html = '';
+    blanks.forEach((b, i) => {
+      html += escapeHtml(b.prefix);
+      const isCurrent = (!isSent && i === current);
+      if(picked[i]){
+        html += `<span class="slot filled${isCurrent ? ' editing' : ''}" data-bi="${i}">${escapeHtml(picked[i].word)}</span>`;
+      } else if (isCurrent){
+        html += `<span class="slot blank active" data-bi="${i}">＿＿＿</span>`;
+      } else {
+        html += `<span class="slot blank" data-bi="${i}">＿＿＿</span>`;
+      }
+      html += escapeHtml(b.suffix);
+    });
+    sentenceEl.innerHTML = html;
+  }
+
+  function escapeHtml(s){
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function buildWheel(blankIndex){
+    const cands = blanks[blankIndex].candidates;
+    const maxPct = Math.max(...cands.map(c=>c.pct));
+    wheelEl.innerHTML = '';
+
+    const topSpacer = document.createElement('div');
+    topSpacer.className = 'spacer';
+    topSpacer.style.height = (ROW_H*2) + 'px';
+    wheelEl.appendChild(topSpacer);
+
+    cands.forEach((c, idx) => {
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.dataset.idx = idx;
+      row.innerHTML = `
+        <div class="word">${escapeHtml(c.word)}</div>
+        <div class="bar-track"><div class="bar-fill" style="width:${(c.pct/maxPct*100).toFixed(0)}%;"></div></div>
+        <div class="pct">${c.pct}%</div>
+      `;
+      row.addEventListener('click', () => {
+        animateToIndex(idx);
+      });
+      wheelEl.appendChild(row);
+    });
+
+    const bottomSpacer = document.createElement('div');
+    bottomSpacer.className = 'spacer';
+    bottomSpacer.style.height = (ROW_H*2) + 'px';
+    wheelEl.appendChild(bottomSpacer);
+
+    // If this blank was already picked, reopen the wheel scrolled to that word
+    // instead of resetting to the top candidate.
+    const existing = picked[blankIndex];
+    let initIdx = 0;
+    if(existing){
+      const foundIdx = cands.findIndex(c => c.word === existing.word);
+      if(foundIdx !== -1) initIdx = foundIdx;
+    }
+    wheelEl.scrollTop = initIdx * ROW_H;
+    activeIndex = initIdx;
+    updateActiveRow();
+  }
+
+  function updateActiveRow(){
+    const rows = wheelEl.querySelectorAll('.row');
+    const raw = wheelEl.scrollTop / ROW_H;
+    const idx = Math.max(0, Math.min(rows.length-1, Math.round(raw)));
+    activeIndex = idx;
+    rows.forEach((r,i) => r.classList.toggle('active', i===idx));
+  }
+
+  wheelEl.addEventListener('scroll', () => {
+    if(scrollRaf) return;
+    scrollRaf = requestAnimationFrame(() => {
+      updateActiveRow();
+      scrollRaf = null;
+    });
+  });
+
+  // Mouse wheel / trackpad: convert into discrete one-row steps.
+  // Native wheel scrolling on a snap container tends to fling 2-3 rows
+  // per tick, so we intercept it and drive our own single-step animation.
+  wheelEl.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    if(isStepping) return; // ignore extra ticks until current step finishes
+    const direction = e.deltaY > 0 ? 1 : -1;
+    animateToIndex(activeIndex + direction);
+  }, { passive:false });
+
+  document.getElementById('nudgeUp').addEventListener('click', () => {
+    if(isStepping) return;
+    animateToIndex(activeIndex - 1);
+  });
+  document.getElementById('nudgeDown').addEventListener('click', () => {
+    if(isStepping) return;
+    animateToIndex(activeIndex + 1);
+  });
+
+  function updateProgress(){
+    document.querySelectorAll('#progress .step').forEach((el,i) => {
+      el.classList.remove('done','live');
+      if(i === current) el.classList.add('live');
+      else if(picked[i]) el.classList.add('done');
+    });
+    progressLabel.textContent = picked[current]
+      ? `BLANK ${current+1} / ${blanks.length} · 다시 선택 중`
+      : `BLANK ${current+1} / ${blanks.length} · 후보 단어 예측 중`;
+    panelTitle.textContent = picked[current]
+      ? `빈칸 ${current+1}의 단어를 다시 선택하세요`
+      : `빈칸 ${current+1}에 들어갈 단어를 선택하세요`;
+  }
+
+  confirmBtn.addEventListener('click', () => {
+    const cands = blanks[current].candidates;
+    const chosen = cands[activeIndex];
+    const top = cands.reduce((a,b) => a.pct > b.pct ? a : b);
+    picked[current] = { word: chosen.word, pct: chosen.pct, isTop: chosen.word === top.word, topWord: top.word, topPct: top.pct };
+    renderSentence();
+    afterConfirm();
+  });
+
+  // After confirming a blank, jump to whichever blank is still unfilled.
+  // If every blank already has a word (including re-edits done out of
+  // order), the draft is complete and we surface the send button.
+  function afterConfirm(){
+    const nextUnfilled = picked.findIndex(p => p === null);
+    if(nextUnfilled === -1){
+      panel.style.display = 'none';
+      sendPanel.style.display = 'block';
+      document.querySelectorAll('#progress .step').forEach(el => { el.classList.remove('live'); el.classList.add('done'); });
+      progressLabel.textContent = `BLANK ${blanks.length} / ${blanks.length} · 합성 완료`;
+    } else {
+      current = nextUnfilled;
+      buildWheel(current);
+      panel.style.display = 'block';
+      sendPanel.style.display = 'none';
+      updateProgress();
+    }
+  }
+
+  document.getElementById('sendBtn').addEventListener('click', () => {
+    isSent = true;
+    sentenceEl.classList.add('locked');
+    renderSentence();
+    sendPanel.style.display = 'none';
+    simulateReply();
+  });
+
+  // Per-blank correction clause used when that blank's pick wasn't the
+  // top-probability word. Only one template per blank, independent of how
+  // many candidates exist — so adding more candidates never adds writing.
+  const correctionLine = [
+    (w) => `${w} 본 거잖아`,
+    (w) => `${w} 먹었잖아`,
+    (w) => `${w}까지 있었잖아`,
+  ];
+
+  // One consolidated reply rather than a separate message per wrong blank:
+  // fewer lines to write/maintain, and reads like how people actually text
+  // (bundling corrections) rather than firing off a correction per word.
+  function buildReply(){
+    const wrongIdx = picked
+      .map((p, i) => ({ p, i }))
+      .filter(o => !o.p.isTop)
+      .map(o => o.i);
+
+    if(wrongIdx.length === 0){
+      return '너 기억력 좋아졌다?ㅋㅋ';
+    }
+
+    const lines = wrongIdx.map(i => correctionLine[i](picked[i].topWord));
+    const joined = lines.join(', ');
+
+    if(wrongIdx.length === 1) return `ㅋㅋ 그게 아니라 ${joined}`;
+    if(wrongIdx.length === 2) return `ㅋㅋㅋ 그게 다 아니지~ ${joined}`;
+    return `야... 하나도 못 맞췄네ㅋㅋ ${joined}`;
+  }
+
+  function appendBubble(kind, text){
+    const row = document.createElement('div');
+    row.className = `bubble-row ${kind} dyn-row`;
+    const b = document.createElement('div');
+    b.className = `bubble ${kind}`;
+    b.textContent = text;
+    row.appendChild(b);
+    chatEl.appendChild(row);
+    return row;
+  }
+
+  function simulateReply(){
+    const typingRow = document.createElement('div');
+    typingRow.className = 'bubble-row in dyn-row';
+    typingRow.innerHTML = `<div class="bubble in typing"><span></span><span></span><span></span></div>`;
+    chatEl.appendChild(typingRow);
+
+    setTimeout(() => {
+      typingRow.remove();
+      appendBubble('in', buildReply());
+      postReply.style.display = 'block';
+    }, 1000);
+  }
+
+  function resetGame(){
+    current = 0;
+    picked[0]=picked[1]=picked[2]=null;
+    isSent = false;
+    sentenceEl.classList.remove('locked');
+    document.querySelectorAll('.dyn-row').forEach(el => el.remove());
+    postReply.style.display = 'none';
+    sendPanel.style.display = 'none';
+    panel.style.display = 'block';
+    renderSentence();
+    buildWheel(0);
+    updateProgress();
+  }
+
+  document.getElementById('restartBtn').addEventListener('click', resetGame);
+
+  // init
+  renderSentence();
+  buildWheel(0);
+  updateProgress();
+})();
+</script>
+</body>
+</html>
