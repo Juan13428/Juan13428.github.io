@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>단서를 찾아라! — SNS 탐색 시뮬레이터 (와이어프레임)</title>
+<style>
+  :root{
+    --ink:#2b2b2b; --line:#c9c9c9; --line2:#e2e2e2; --bg:#f4f4f4;
+    --paper:#ffffff; --dim:#8a8a8a; --accent:#3b3b3b;
+    --good:#d84f3f; --bad:#4f6fd8;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent;}
+  body{
+    background:repeating-linear-gradient(45deg,#ececec 0 14px,#f2f2f2 14px 28px);
+    font-family:'Apple SD Gothic Neo','Noto Sans KR','Malgun Gothic',sans-serif;
+    color:var(--ink); display:flex; justify-content:center; align-items:flex-start;
+    min-height:100vh; padding:24px 8px;
+  }
+  .stage{display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap; justify-content:center;}
+  /* ── phone frame ── */
+  .phone{
+    width:390px; max-width:96vw; height:780px; max-height:92vh;
+    background:var(--paper); border:3px solid var(--ink); border-radius:28px;
+    display:flex; flex-direction:column; overflow:hidden; position:relative;
+    box-shadow:8px 8px 0 rgba(0,0,0,.12);
+  }
+  .statusbar{
+    flex:none; height:34px; border-bottom:1px dashed var(--line);
+    display:flex; align-items:center; justify-content:space-between;
+    padding:0 16px; font-size:11px; color:var(--dim); letter-spacing:.5px;
+  }
+  .topbar{
+    flex:none; height:48px; border-bottom:2px solid var(--ink);
+    display:flex; align-items:center; padding:0 12px; gap:10px; background:var(--paper);
+  }
+  .topbar .back{
+    width:32px; height:32px; border:2px solid var(--ink); border-radius:8px;
+    background:none; font-size:16px; cursor:pointer; line-height:1;
+  }
+  .topbar .back:disabled{opacity:.25; cursor:default;}
+  .topbar .ttl{font-weight:800; font-size:15px; flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .topbar .cluecount{
+    font-size:11px; border:1.5px dashed var(--ink); border-radius:99px;
+    padding:4px 10px; background:#fafafa; font-weight:700;
+  }
+  #app{flex:1; overflow-y:auto; background:var(--paper);}
+  /* ── bottom tab bar ── */
+  .tabbar{
+    flex:none; height:56px; border-top:2px solid var(--ink); display:flex; background:var(--paper);
+  }
+  .tabbar button{
+    flex:1; background:none; border:none; border-right:1px dashed var(--line);
+    font-size:11px; cursor:pointer; color:var(--dim); font-weight:700;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+    font-family:inherit;
+  }
+  .tabbar button:last-child{border-right:none;}
+  .tabbar button .ic{font-size:18px;}
+  .tabbar button.on{color:var(--ink); background:#f0f0f0;}
+  .tabbar button .bdg{
+    position:absolute; margin-left:34px; margin-top:-30px;
+    background:var(--good); color:#fff; font-size:9px; border-radius:99px; padding:2px 5px;
+  }
+  /* ── generic wireframe bits ── */
+  .wf-avatar{
+    border:2px solid var(--ink); border-radius:50%; background:
+      linear-gradient(to top right, transparent calc(50% - 1px), var(--line) 50%, transparent calc(50% + 1px)),
+      #f7f7f7;
+    display:flex; align-items:center; justify-content:center; flex:none;
+  }
+  .wf-img{
+    border:2px solid var(--ink); background:
+      linear-gradient(to top right, transparent calc(50% - 1px), var(--line) 50%, transparent calc(50% + 1px)),
+      linear-gradient(to bottom right, transparent calc(50% - 1px), var(--line) 50%, transparent calc(50% + 1px)),
+      #fafafa;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;
+    text-align:center; color:var(--dim);
+  }
+  .wf-img .emoji{font-size:34px; filter:grayscale(1); opacity:.85;}
+  .wf-img .lbl{
+    font-size:11px; background:var(--paper); border:1px dashed var(--line);
+    padding:3px 8px; border-radius:6px; max-width:80%;
+  }
+  .taglink{color:#1a4bb8; font-weight:700; cursor:pointer; text-decoration:underline; text-underline-offset:2px;}
+  .taglink:hover{background:#eef3ff;}
+  /* ── intro ── */
+  .intro{padding:28px 22px; display:flex; flex-direction:column; gap:16px; height:100%;}
+  .intro h1{font-size:22px; line-height:1.35;}
+  .intro .card{border:2px solid var(--ink); border-radius:14px; padding:16px; background:#fafafa; font-size:13.5px; line-height:1.7;}
+  .intro .card b{background:#fff3b0;}
+  .intro .rules{font-size:12.5px; color:var(--dim); line-height:1.8;}
+  .intro .go{
+    margin-top:auto; border:2px solid var(--ink); background:var(--ink); color:#fff;
+    font-size:16px; font-weight:800; padding:14px; border-radius:12px; cursor:pointer; font-family:inherit;
+  }
+  .intro .go:hover{background:#000;}
+  /* ── profile ── */
+  .pf-head{padding:18px 16px 14px; border-bottom:1px dashed var(--line);}
+  .pf-row{display:flex; align-items:center; gap:18px;}
+  .pf-stats{display:flex; flex:1; justify-content:space-around; text-align:center;}
+  .pf-stats b{display:block; font-size:16px;}
+  .pf-stats span{font-size:11px; color:var(--dim);}
+  .pf-name{font-weight:800; margin-top:12px; font-size:14px;}
+  .pf-bio{font-size:12.5px; color:#555; margin-top:3px; line-height:1.55; white-space:pre-line;}
+  .pf-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:3px; padding:3px;}
+  .pf-grid .cell{aspect-ratio:1; cursor:pointer; position:relative;}
+  .pf-grid .cell .wf-img{width:100%; height:100%;}
+  .pf-grid .cell .wf-img .emoji{font-size:26px;}
+  .pf-grid .cell .wf-img .lbl{font-size:9px; padding:2px 5px;}
+  .pf-grid .cell .seen{
+    position:absolute; top:5px; right:5px; font-size:10px; background:var(--ink); color:#fff;
+    border-radius:99px; padding:2px 6px; opacity:.85;
+  }
+  .pf-grid .cell:hover .wf-img{background-color:#f0f0f0;}
+  /* ── post ── */
+  .post{border-bottom:8px solid var(--bg);}
+  .post-top{display:flex; align-items:center; gap:10px; padding:10px 14px;}
+  .post-top .who{font-weight:800; font-size:13.5px; cursor:pointer;}
+  .post-top .who:hover{text-decoration:underline;}
+  .post-img{width:100%; aspect-ratio:1; border-left:none; border-right:none; border-radius:0;}
+  .post-acts{display:flex; gap:14px; padding:10px 14px 4px; font-size:20px; filter:grayscale(1); opacity:.8;}
+  .post-likes{padding:0 14px; font-size:12.5px; font-weight:700;}
+  .post-cap{padding:6px 14px 12px; font-size:13.5px; line-height:1.6;}
+  .post-cap .who{font-weight:800; margin-right:6px; cursor:pointer;}
+  .cmt-h{padding:10px 14px 6px; font-size:11.5px; color:var(--dim); border-top:1px dashed var(--line);}
+  .cmt{
+    display:flex; gap:10px; padding:9px 14px; cursor:pointer; align-items:flex-start;
+    border-left:4px solid transparent;
+  }
+  .cmt:hover{background:#f6f6f6;}
+  .cmt.is-clue-found{border-left-color:var(--good); background:#fdf3f1;}
+  .cmt .body{font-size:13px; line-height:1.55; flex:1;}
+  .cmt .body .who{font-weight:800; margin-right:6px; cursor:pointer;}
+  .cmt .body .who:hover{text-decoration:underline;}
+  .cmt .mag{font-size:13px; opacity:.35; flex:none; margin-top:2px;}
+  .cmt.is-clue-found .mag{opacity:1;}
+  .cmt.reply{padding-left:44px;}
+  /* ── search ── */
+  .search{padding:16px;}
+  .search .sbox{
+    border:2px solid var(--ink); border-radius:10px; padding:10px 12px; font-size:13px;
+    color:var(--dim); background:#fafafa; margin-bottom:16px;
+  }
+  .acct{
+    display:flex; align-items:center; gap:12px; padding:12px 6px; cursor:pointer;
+    border-bottom:1px dashed var(--line2);
+  }
+  .acct:hover{background:#f6f6f6;}
+  .acct .nm b{display:block; font-size:14px;}
+  .acct .nm span{font-size:12px; color:var(--dim);}
+  .acct.locked{cursor:default; opacity:.55;}
+  .acct.locked .wf-avatar{border-style:dashed;}
+  .hint{font-size:11.5px; color:var(--dim); margin-top:14px; line-height:1.7; border:1px dashed var(--line); border-radius:10px; padding:10px 12px; background:#fbfbfb;}
+  /* ── notebook ── */
+  .note{padding:18px 16px;}
+  .note h2{font-size:16px; margin-bottom:4px;}
+  .note .sub{font-size:12px; color:var(--dim); margin-bottom:16px;}
+  .gauge{margin-bottom:14px;}
+  .gauge .g-top{display:flex; justify-content:space-between; font-size:13px; font-weight:800; margin-bottom:5px;}
+  .gauge .g-top .val{font-variant-numeric:tabular-nums;}
+  .bar{height:18px; border:2px solid var(--ink); border-radius:9px; overflow:hidden; position:relative; background:#fafafa;}
+  .bar .zero{position:absolute; left:25%; top:0; bottom:0; width:2px; background:var(--line); z-index:1;}
+  .bar .fill{position:absolute; top:0; bottom:0; transition:all .5s ease;}
+  .bar .fill.pos{background:repeating-linear-gradient(45deg,var(--good) 0 6px,#e8796b 6px 12px);}
+  .bar .fill.neg{background:repeating-linear-gradient(45deg,var(--bad) 0 6px,#7d94e2 6px 12px);}
+  .clue-list{margin-top:20px;}
+  .clue-list h3{font-size:13px; margin-bottom:8px;}
+  .clue-item{
+    border:1.5px solid var(--ink); border-radius:10px; padding:10px 12px; margin-bottom:8px;
+    font-size:12.5px; background:#fff; display:flex; gap:10px; align-items:center;
+  }
+  .clue-item.empty{border-style:dashed; color:var(--dim); background:#fbfbfb;}
+  .clue-item .d{font-weight:800; flex:none; font-size:12px; padding:2px 8px; border-radius:99px; color:#fff;}
+  .clue-item .d.pos{background:var(--good);} .clue-item .d.neg{background:var(--bad);}
+  .clue-item .t b{display:block;} .clue-item .t span{color:var(--dim); font-size:11.5px;}
+  .submitbtn{
+    width:100%; margin-top:16px; border:2px solid var(--ink); border-radius:12px;
+    padding:13px; font-size:15px; font-weight:800; cursor:pointer; font-family:inherit;
+    background:var(--ink); color:#fff;
+  }
+  .submitbtn:disabled{background:#eee; color:var(--dim); cursor:default; border-style:dashed;}
+  /* ── submit / ending ── */
+  .pick{padding:22px 18px;}
+  .pick h2{font-size:18px; line-height:1.4; margin-bottom:6px;}
+  .pick .sub{font-size:12.5px; color:var(--dim); margin-bottom:18px; line-height:1.6;}
+  .food{
+    border:2px solid var(--ink); border-radius:14px; padding:14px; margin-bottom:12px;
+    display:flex; align-items:center; gap:14px; cursor:pointer; background:#fff;
+  }
+  .food:hover{background:#f4f4f4; transform:translate(-1px,-1px); box-shadow:3px 3px 0 rgba(0,0,0,.15);}
+  .food .fe{font-size:30px;}
+  .food .fn{font-weight:800; font-size:15px; flex:1;}
+  .food .fw{font-size:13px; font-weight:800; font-variant-numeric:tabular-nums;}
+  .food .fw.pos{color:var(--good);} .food .fw.neg{color:var(--bad);} .food .fw.zero{color:var(--dim);}
+  .ending{padding:26px 20px; display:flex; flex-direction:column; gap:14px; text-align:center;}
+  .ending .big{font-size:52px;}
+  .ending h2{font-size:20px; line-height:1.4;}
+  .ending p{font-size:13.5px; line-height:1.75; color:#444; text-align:left;}
+  .ending .recap{border:2px solid var(--ink); border-radius:12px; padding:14px; text-align:left; font-size:12.5px; background:#fafafa; line-height:1.9;}
+  .ending .again{border:2px solid var(--ink); background:none; padding:12px; border-radius:12px; font-weight:800; cursor:pointer; font-family:inherit; font-size:14px;}
+  /* ── modal / toast ── */
+  .veil{
+    position:absolute; inset:0; background:rgba(0,0,0,.45); display:flex;
+    align-items:center; justify-content:center; padding:24px; z-index:50;
+  }
+  .modal{
+    background:var(--paper); border:3px solid var(--ink); border-radius:16px;
+    padding:22px 20px; width:100%; max-width:320px; text-align:center;
+    box-shadow:6px 6px 0 rgba(0,0,0,.25); animation:pop .25s ease;
+  }
+  @keyframes pop{from{transform:scale(.85); opacity:0;} to{transform:scale(1); opacity:1;}}
+  .modal .m-emoji{font-size:40px;}
+  .modal .m-tag{
+    display:inline-block; font-size:11px; font-weight:800; letter-spacing:1px;
+    border:1.5px solid var(--ink); border-radius:99px; padding:3px 12px; margin:8px 0 6px;
+  }
+  .modal h3{font-size:17px; margin-bottom:8px;}
+  .modal p{font-size:13px; line-height:1.65; color:#444; margin-bottom:12px;}
+  .modal .delta{font-size:15px; font-weight:800; margin-bottom:14px;}
+  .modal .delta.pos{color:var(--good);} .modal .delta.neg{color:var(--bad);}
+  .modal button{
+    border:2px solid var(--ink); background:var(--ink); color:#fff; font-family:inherit;
+    padding:10px 26px; border-radius:10px; font-weight:800; font-size:14px; cursor:pointer;
+  }
+  #toast{
+    position:absolute; bottom:70px; left:50%; transform:translateX(-50%);
+    background:var(--ink); color:#fff; font-size:12.5px; padding:9px 16px;
+    border-radius:99px; opacity:0; transition:opacity .25s; pointer-events:none;
+    white-space:nowrap; z-index:60;
+  }
+  /* ── side legend (desktop) ── */
+  .legend{
+    width:250px; border:2px dashed var(--ink); border-radius:14px; padding:16px;
+    background:rgba(255,255,255,.85); font-size:12px; line-height:1.8; color:#444;
+  }
+  .legend h3{font-size:13px; margin-bottom:6px;}
+  .legend ul{padding-left:16px;}
+  @media (max-width:760px){ .legend{display:none;} }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone">
+    <div class="statusbar"><span>9:41</span><span>◀ wireframe ▶</span><span>▮▮▮ 100%</span></div>
+    <div class="topbar">
+      <button class="back" id="btnBack" onclick="goBack()">←</button>
+      <div class="ttl" id="topTitle">Instagram</div>
+      <div class="cluecount" id="clueCount">🔍 0/5</div>
+    </div>
+    <div id="app"></div>
+    <div class="tabbar" id="tabbar">
+      <button id="tabHome" onclick="tabHome()"><span class="ic">🏠</span>홈</button>
+      <button id="tabSearch" onclick="tabSearch()"><span class="ic">🔎</span>검색</button>
+      <button id="tabNote" onclick="tabNote()"><span class="ic">📒</span>단서 수첩</button>
+    </div>
+    <div id="toast"></div>
+    <div id="modalRoot"></div>
+  </div>
+
+  <aside class="legend">
+    <h3>📐 와이어프레임 시뮬레이터</h3>
+    <ul>
+      <li>게시글 <b>댓글을 눌러</b> 조사한다</li>
+      <li>단서 발견 시 음식별 <b>가중치</b>가 변한다</li>
+      <li><b>@태그·#해시태그</b>로 다른 프로필 이동</li>
+      <li>떡볶이 가중치 <b>40 이상</b>이면 정답 제출 가능</li>
+    </ul>
+    <h3 style="margin-top:12px;">단서 구성 (스포일러)</h3>
+    <ul>
+      <li>떡볶이 +20 × 3</li>
+      <li>짜장면 −10 × 1</li>
+      <li>탕수육 −10 × 1</li>
+    </ul>
+  </aside>
+</div>
+
+<script>
+/* ══════════════ DATA ══════════════ */
+const CLUES = {
+  c1:{food:'tteok', delta:+20, title:'맵기 3단계의 정체',   desc:'가은이 본인 입으로 "떡볶이는 3단계가 국룰"이라고 했다. 빨간 국물의 정체는 떡볶이!', where:'윤가은 게시글 · 댓글'},
+  c2:{food:'tteok', delta:+20, title:'친구의 증언',         desc:'박지훈 왈, 가은이는 "떡볶이 중독자". 제3자의 확실한 증언이다.', where:'박지훈 게시글 · 댓글'},
+  c3:{food:'tteok', delta:+20, title:'단골 인증 (결정적!)', desc:'혜자분식 도장 10개 + 사장님이 "늘 먹던 3단계"까지 기억한다. 물증 확보!', where:'혜자분식 게시글 · 댓글'},
+  c4:{food:'jja',   delta:-10, title:'짜장면은 별로',       desc:'짜장면엔 손도 안 대고 단무지만 먹었다. 면 불어터지는 게 싫다고.', where:'박지훈 게시글 · 댓글'},
+  c5:{food:'tang',  delta:-10, title:'탕수육도 패스',       desc:'부먹찍먹 이전의 문제. 눅눅한 튀김옷 자체가 싫다고 한다.', where:'윤가은 게시글 · 댓글'},
+};
+const FOODS = {
+  tteok:{name:'떡볶이', emoji:'🌶️'},
+  jja:{name:'짜장면', emoji:'🍜'},
+  tang:{name:'탕수육', emoji:'🍖'},
+};
+
+const PROFILES = {
+  gaeun:{
+    handle:'gaeun_0v0', name:'윤가은', avatar:'👩',
+    bio:'평범한 대학생 🎓\n먹는 건 언제나 진심. 매운 거 환영 🔥',
+    posts:180, followers:342, following:298,
+    feed:[
+      { id:'g1', emoji:'🤳', label:'셀카 (음식은 안 보임)', likes:52,
+        cap:'시험 끝!! 오늘은 그거 먹으러 간다 🔥',
+        comments:[
+          {who:'jihoon', text:'또 거기냐 ㅋㅋ 질리지도 않냐'},
+          {who:'gaeun', text:'@박지훈 평생 안 질림', reply:true},
+        ]},
+      { id:'g2', emoji:'🥘', label:'빨간 국물만 남은 그릇', likes:74,
+        cap:'인생은 맵기 조절이 안 되지만 이건 되지',
+        comments:[
+          {who:'minji', text:'또 3단계 먹었냐 ㅋㅋ 혀 괜찮아?'},
+          {who:'gaeun', text:'떡볶이는 3단계가 국룰이지 🌶️', reply:true, clue:'c1'},
+        ]},
+      { id:'g3', emoji:'🥡', label:'중국집 회식 단체 사진', likes:38,
+        cap:'회식은 좋은데 메뉴 선정은 실패…',
+        comments:[
+          {who:'suhyun', text:'탕수육 너 혼자 하나도 안 먹더라?'},
+          {who:'gaeun', text:'부먹찍먹 이전의 문제야, 난 튀김옷 눅눅한 게 싫어 ㅠ', reply:true, clue:'c5'},
+        ]},
+      { id:'g4', emoji:'🏘️', label:'해질녘 골목길', likes:61,
+        cap:'단골집 가는 길 #혜자분식 #떡볶이스타그램',
+        comments:[
+          {who:'jihoon', text:'나도 데려가라'},
+        ]},
+    ]},
+  jihoon:{
+    handle:'jihoon_bball', name:'박지훈', avatar:'🧑',
+    bio:'농구 ⛹️ | 밥은 얻어먹는 게 제일 맛있음',
+    posts:96, followers:410, following:377,
+    feed:[
+      { id:'j1', emoji:'🏀', label:'농구 경기 사진', likes:88,
+        cap:'오늘 3점 5개 성공. 폼 미쳤다',
+        comments:[
+          {who:'minji', text:'하이라이트 영상 내놔'},
+        ]},
+      { id:'j2', emoji:'📚', label:'스터디 모임 (테이블에 음식)', likes:45,
+        cap:'공부하러 모여서 먹기만 함',
+        comments:[
+          {who:'gaeun', text:'다음엔 내가 제일 좋아하는 거 먹으러 가자. 알지?'},
+          {who:'jihoon', text:'너 그거 말고 먹는 거 봤냐 ㅋㅋ 떡볶이 중독자. #혜자분식 콜', reply:true, clue:'c2'},
+        ]},
+      { id:'j3', emoji:'🍜', label:'짜장면 클로즈업', likes:29,
+        cap:'이사 도와주고 얻어먹는 짜장면이 제일 맛있다',
+        comments:[
+          {who:'jihoon', text:'근데 가은이는 오늘도 짜장면 손도 안 대고 단무지만 먹음'},
+          {who:'gaeun', text:'면 불어터지는 속도를 못 참겠어…', reply:true, clue:'c4'},
+        ]},
+      { id:'j4', emoji:'🎂', label:'작년 생일파티 리그램', likes:67,
+        cap:'다음 주 가은이 생일이네. 뭐 먹으러 가지',
+        comments:[
+          {who:'minji', text:'네가 사는 거냐?'},
+          {who:'jihoon', text:'ㄴㄴ 각자 계산', reply:true},
+        ]},
+    ]},
+  hyeja:{
+    handle:'hyeja_bunsik', name:'혜자분식', avatar:'🏪',
+    bio:'🌶️ 30년 전통 즉석떡볶이\n맵기 1~4단계 | 일요일 휴무',
+    posts:214, followers:1204, following:12,
+    feed:[
+      { id:'h1', emoji:'🧀', label:'신메뉴 로제떡볶이', likes:230,
+        cap:'이번 주 신메뉴 출시! 로제떡볶이 드디어 나왔습니다 🎉',
+        comments:[
+          {who:'minji', text:'드디어!! 내일 갈게요'},
+        ]},
+      { id:'h2', emoji:'🏆', label:'단골왕 도장 쿠폰', likes:158,
+        cap:'이달의 단골왕 🏆 도장 10개 모으면 1인분 서비스!',
+        comments:[
+          {who:'gaeun', text:'도장 10개 인증합니다 🙋‍♀️'},
+          {who:'hyeja', text:'가은 학생 이번 달도 1등~ 늘 먹던 3단계로 준비해둘게 😊', reply:true, clue:'c3'},
+        ]},
+      { id:'h3', emoji:'📋', label:'휴무 안내문', likes:41,
+        cap:'이번 주 일요일은 쉬어갑니다. 월요일에 만나요!',
+        comments:[]},
+    ]},
+};
+const NAMES = { gaeun:'윤가은', jihoon:'박지훈', hyeja:'혜자분식', minji:'김민지', suhyun:'이수현' };
+const NAME2PID = { '박지훈':'jihoon', '윤가은':'gaeun', '혜자분식':'hyeja' };
+const TAG2PID  = { '혜자분식':'hyeja' };
+const WIN_THRESHOLD = 40; /* 밸런싱 변수: 떡볶이 단서 2개 이상 */
+
+/* ══════════════ STATE ══════════════ */
+let S;
+function resetState(){
+  S = {
+    screen:{name:'intro'},
+    stack:[],
+    weights:{tteok:0, jja:0, tang:0},
+    found:new Set(),
+    inspected:new Set(),
+    discovered:new Set(['gaeun']),
+    solved:false,
+  };
+}
+resetState();
+
+/* ══════════════ NAV ══════════════ */
+function go(screen, push=true){
+  if(push && S.screen) S.stack.push(S.screen);
+  if(S.stack.length>20) S.stack.shift();
+  S.screen = screen;
+  render();
+}
+function goBack(){
+  if(S.stack.length===0) return;
+  S.screen = S.stack.pop();
+  render();
+}
+function tabHome(){ S.stack=[]; go({name:'profile', pid:'gaeun'}, false); }
+function tabSearch(){ go({name:'search'}); }
+function tabNote(){ go({name:'note'}); }
+function openProfile(pid){
+  if(!S.discovered.has(pid)){
+    S.discovered.add(pid);
+    toast('🔓 새 계정 발견: @'+PROFILES[pid].handle);
+  }
+  go({name:'profile', pid});
+}
+function openPost(pid, idx){ go({name:'post', pid, idx}); }
+
+/* ══════════════ CLUE LOGIC ══════════════ */
+function inspect(pid, idx, ci){
+  const key = pid+'/'+idx+'/'+ci;
+  const cmt = PROFILES[pid].feed[idx].comments[ci];
+  if(cmt.clue && !S.found.has(cmt.clue)){
+    S.found.add(cmt.clue);
+    S.inspected.add(key);
+    const c = CLUES[cmt.clue];
+    S.weights[c.food] += c.delta;
+    render();
+    showClueModal(cmt.clue);
+    return;
+  }
+  if(cmt.clue){ toast('이미 확보한 단서다.'); return; }
+  if(!S.inspected.has(key)){
+    S.inspected.add(key);
+    toast('🔍 흠… 특별한 건 없는 것 같다.');
+  } else {
+    toast('이미 조사한 댓글이다.');
+  }
+}
+function showClueModal(cid){
+  const c = CLUES[cid], f = FOODS[c.food];
+  const pos = c.delta>0;
+  const all = S.found.size===5;
+  document.getElementById('modalRoot').innerHTML = `
+    <div class="veil" onclick="closeModal(event)">
+      <div class="modal" onclick="event.stopPropagation()">
+        <div class="m-emoji">${pos?'🔍':'🚫'}</div>
+        <div class="m-tag">단서 발견 ${S.found.size}/5</div>
+        <h3>${c.title}</h3>
+        <p>${c.desc}</p>
+        <div class="delta ${pos?'pos':'neg'}">${f.emoji} ${f.name} 가중치 ${pos?'+':''}${c.delta}</div>
+        <button onclick="closeModal()">${all?'수첩 확인하기':'계속 조사'}</button>
+      </div>
+    </div>`;
+  if(all) setTimeout(()=>toast('🎉 모든 단서를 찾았다! 단서 수첩에서 결론을 내리자.'), 400);
+}
+function closeModal(e){
+  if(e && e.target !== e.currentTarget) return;
+  document.getElementById('modalRoot').innerHTML='';
+  if(S.found.size===5 && !S.solved && S.screen.name!=='note') tabNote();
+}
+function pickFood(food){
+  if(food==='tteok'){
+    S.solved = true;
+    S.stack = [];
+    go({name:'ending'}, false);
+  } else {
+    toast('🤔 단서 가중치를 다시 보자… '+FOODS[food].name+'는 아닌 것 같다.');
+  }
+}
+
+/* ══════════════ RENDER ══════════════ */
+const app = ()=>document.getElementById('app');
+
+function linkify(text){
+  return text
+    .replace(/@([가-힣A-Za-z0-9_]+)/g, (m,name)=> NAME2PID[name]
+      ? `<span class="taglink" onclick="event.stopPropagation();openProfile('${NAME2PID[name]}')">@${name}</span>` : m)
+    .replace(/#([가-힣A-Za-z0-9_]+)/g, (m,tag)=> TAG2PID[tag]
+      ? `<span class="taglink" onclick="event.stopPropagation();openProfile('${TAG2PID[tag]}')">#${tag}</span>`
+      : `<span style="color:#1a4bb8">#${tag}</span>`);
+}
+function whoSpan(who){
+  const pid = ['gaeun','jihoon','hyeja'].includes(who) ? who : null;
+  const nm = NAMES[who]||who;
+  return pid
+    ? `<span class="who" onclick="event.stopPropagation();openProfile('${pid}')">${nm}</span>`
+    : `<span class="who" onclick="event.stopPropagation();toast('평범한 계정이다. 단서는 없어 보인다.')">${nm}</span>`;
+}
+
+function render(){
+  const sc = S.screen;
+  document.getElementById('clueCount').textContent = '🔍 '+S.found.size+'/5';
+  document.getElementById('btnBack').disabled = S.stack.length===0;
+  ['tabHome','tabSearch','tabNote'].forEach(id=>document.getElementById(id).classList.remove('on'));
+  if(sc.name==='profile'||sc.name==='post') document.getElementById('tabHome').classList.add('on');
+  if(sc.name==='search') document.getElementById('tabSearch').classList.add('on');
+  if(sc.name==='note'||sc.name==='pick') document.getElementById('tabNote').classList.add('on');
+  document.getElementById('tabbar').style.display = (sc.name==='intro'||sc.name==='ending') ? 'none':'flex';
+
+  const T = document.getElementById('topTitle');
+  if(sc.name==='intro'){ T.textContent='Instagram (wireframe)'; renderIntro(); }
+  else if(sc.name==='profile'){ T.textContent='@'+PROFILES[sc.pid].handle; renderProfile(sc.pid); }
+  else if(sc.name==='post'){ T.textContent='게시물'; renderPost(sc.pid, sc.idx); }
+  else if(sc.name==='search'){ T.textContent='검색'; renderSearch(); }
+  else if(sc.name==='note'){ T.textContent='단서 수첩'; renderNote(); }
+  else if(sc.name==='pick'){ T.textContent='결론 내리기'; renderPick(); }
+  else if(sc.name==='ending'){ T.textContent='EPILOGUE'; renderEnding(); }
+  app().scrollTop = 0;
+}
+
+function renderIntro(){
+  app().innerHTML = `
+  <div class="intro">
+    <h1>🔍 가은이는 무슨 음식을<br>좋아할까?</h1>
+    <div class="card">
+      다음 주는 친구 <b>윤가은</b>의 생일.<br>
+      깜짝 이벤트로 <b>가은이가 제일 좋아하는 음식</b>을 사주기로 했다.
+      그런데… 뭘 좋아하는지 모른다!<br><br>
+      직접 물어보면 서프라이즈가 망한다.
+      <b>SNS 프로필과 해시태그를 뒤져서</b> 단서를 찾아내자.
+    </div>
+    <div class="rules">
+      📒 단서는 총 5개 — 게시글의 <b>댓글</b> 속에 숨어 있다.<br>
+      🌶️ 단서를 찾으면 음식별 <b>가중치</b>가 오르내린다.<br>
+      🔗 댓글의 <b>이름·@태그·#해시태그</b>를 누르면 다른 프로필로 이동.<br>
+      🏆 확신이 서면 단서 수첩에서 결론을 내리자.
+    </div>
+    <button class="go" onclick="tabHome()">가은이 프로필 열기 →</button>
+  </div>`;
+}
+
+function renderProfile(pid){
+  const p = PROFILES[pid];
+  const cells = p.feed.map((post,i)=>{
+    const seen = post.comments.some((c,ci)=>S.inspected.has(pid+'/'+i+'/'+ci));
+    const found = post.comments.some(c=>c.clue && S.found.has(c.clue));
+    return `<div class="cell" onclick="openPost('${pid}',${i})">
+      <div class="wf-img"><div class="emoji">${post.emoji}</div><div class="lbl">${post.label}</div></div>
+      ${found?'<span class="seen">🔍 단서</span>':(seen?'<span class="seen">✓</span>':'')}
+    </div>`;
+  }).join('');
+  app().innerHTML = `
+    <div class="pf-head">
+      <div class="pf-row">
+        <div class="wf-avatar" style="width:76px;height:76px;font-size:34px;">${p.avatar}</div>
+        <div class="pf-stats">
+          <div><b>${p.posts}</b><span>게시물</span></div>
+          <div><b>${p.followers}</b><span>팔로워</span></div>
+          <div><b>${p.following}</b><span>팔로잉</span></div>
+        </div>
+      </div>
+      <div class="pf-name">${p.name}</div>
+      <div class="pf-bio">${p.bio}</div>
+    </div>
+    <div class="pf-grid">${cells}</div>
+    <div style="padding:14px 16px; font-size:11.5px; color:var(--dim);">▲ 게시물을 눌러 댓글을 조사하자</div>`;
+}
+
+function renderPost(pid, idx){
+  const p = PROFILES[pid], post = p.feed[idx];
+  const cmts = post.comments.map((c,ci)=>{
+    const key = pid+'/'+idx+'/'+ci;
+    const foundClue = c.clue && S.found.has(c.clue);
+    return `<div class="cmt ${c.reply?'reply':''} ${foundClue?'is-clue-found':''}" onclick="inspect('${pid}',${idx},${ci})">
+      <div class="wf-avatar" style="width:26px;height:26px;font-size:12px;">${['gaeun','jihoon','hyeja'].includes(c.who)?PROFILES[c.who].avatar:'👤'}</div>
+      <div class="body">${whoSpan(c.who)}${linkify(c.text)}</div>
+      <div class="mag">${foundClue?'🔍':'⌕'}</div>
+    </div>`;
+  }).join('') || '<div style="padding:14px;font-size:12.5px;color:var(--dim);">댓글이 없다.</div>';
+  app().innerHTML = `
+  <div class="post">
+    <div class="post-top">
+      <div class="wf-avatar" style="width:34px;height:34px;font-size:16px;">${p.avatar}</div>
+      ${whoSpan(pid)}
+      <span style="margin-left:auto;color:var(--dim);">⋯</span>
+    </div>
+    <div class="wf-img post-img"><div class="emoji" style="font-size:56px;">${post.emoji}</div><div class="lbl">${post.label}</div></div>
+    <div class="post-acts"><span>♡</span><span>💬</span><span>✈</span><span style="margin-left:auto;">🔖</span></div>
+    <div class="post-likes">좋아요 ${post.likes}개</div>
+    <div class="post-cap">${whoSpan(pid)}${linkify(post.cap)}</div>
+    <div class="cmt-h">댓글 — 눌러서 조사하기</div>
+    ${cmts}
+    <div style="height:16px;"></div>
+  </div>`;
+}
+
+function renderSearch(){
+  const rows = ['gaeun','jihoon','hyeja'].map(pid=>{
+    const p = PROFILES[pid];
+    if(S.discovered.has(pid)){
+      return `<div class="acct" onclick="openProfile('${pid}')">
+        <div class="wf-avatar" style="width:46px;height:46px;font-size:22px;">${p.avatar}</div>
+        <div class="nm"><b>@${p.handle}</b><span>${p.name}</span></div>
+        <span style="margin-left:auto;font-size:12px;color:var(--dim);">보기 →</span>
+      </div>`;
+    }
+    return `<div class="acct locked">
+      <div class="wf-avatar" style="width:46px;height:46px;font-size:20px;">❓</div>
+      <div class="nm"><b>@?????</b><span>아직 발견하지 못한 계정</span></div>
+      <span style="margin-left:auto;font-size:12px;">🔒</span>
+    </div>`;
+  }).join('');
+  app().innerHTML = `<div class="search">
+    <div class="sbox">🔎 계정·해시태그 검색 (와이어프레임)</div>
+    ${rows}
+    <div class="hint">💡 힌트: 잠긴 계정은 게시글 <b>댓글 속 이름(@태그)</b>이나 <b>#해시태그</b>를 눌러야 발견된다.</div>
+  </div>`;
+}
+
+function renderNote(){
+  const gauges = Object.keys(FOODS).map(k=>{
+    const w = S.weights[k], f = FOODS[k];
+    /* bar: -20 ~ +60, zero at 25% */
+    const zero = 25;
+    let left, width, cls;
+    if(w>=0){ left=zero; width=w/80*100; cls='pos'; }
+    else { width=(-w)/80*100; left=zero-width; cls='neg'; }
+    return `<div class="gauge">
+      <div class="g-top"><span>${f.emoji} ${f.name}</span><span class="val">${w>0?'+':''}${w}</span></div>
+      <div class="bar"><div class="zero"></div><div class="fill ${cls}" style="left:${left}%;width:${width}%;"></div></div>
+    </div>`;
+  }).join('');
+  const items = Object.keys(CLUES).map(cid=>{
+    const c = CLUES[cid], f = FOODS[c.food];
+    if(S.found.has(cid)){
+      return `<div class="clue-item">
+        <span class="d ${c.delta>0?'pos':'neg'}">${c.delta>0?'+':''}${c.delta}</span>
+        <div class="t"><b>${f.emoji} ${c.title}</b><span>${c.where}</span></div>
+      </div>`;
+    }
+    return `<div class="clue-item empty"><span>❓</span><div class="t"><b>미발견 단서</b><span>프로필 어딘가의 댓글 속에…</span></div></div>`;
+  }).join('');
+  const can = S.weights.tteok >= WIN_THRESHOLD;
+  app().innerHTML = `<div class="note">
+    <h2>📒 단서 수첩</h2>
+    <div class="sub">가은이가 좋아할 확률 — 가중치 게이지 (범위 −20 ~ +60)</div>
+    ${gauges}
+    <div class="clue-list"><h3>확보한 단서 ${S.found.size}/5</h3>${items}</div>
+    <button class="submitbtn" ${can?'':'disabled'} onclick="go({name:'pick'})">
+      ${can ? '🎁 결론 내리기 — 생일 메뉴 결정!' : '🔒 확신 부족 — 떡볶이 가중치 '+WIN_THRESHOLD+' 이상 필요'}
+    </button>
+  </div>`;
+}
+
+function renderPick(){
+  const rows = Object.keys(FOODS).map(k=>{
+    const w=S.weights[k], f=FOODS[k];
+    return `<div class="food" onclick="pickFood('${k}')">
+      <div class="fe">${f.emoji}</div>
+      <div class="fn">${f.name}</div>
+      <div class="fw ${w>0?'pos':(w<0?'neg':'zero')}">가중치 ${w>0?'+':''}${w}</div>
+    </div>`;
+  }).join('');
+  app().innerHTML = `<div class="pick">
+    <h2>🎂 결론의 시간</h2>
+    <div class="sub">모은 단서를 종합해 보자. 가은이 생일에 사줄 음식은…?</div>
+    ${rows}
+  </div>`;
+}
+
+function renderEnding(){
+  const found = S.found.size;
+  const recap = Object.keys(CLUES).filter(c=>S.found.has(c))
+    .map(cid=>{const c=CLUES[cid], f=FOODS[c.food];
+      return `${f.emoji} ${c.title} <b style="float:right">${c.delta>0?'+':''}${c.delta}</b>`;})
+    .join('<br>');
+  app().innerHTML = `<div class="ending">
+    <div class="big">🎉</div>
+    <h2>정답! 가은이가 좋아하는 건<br>🌶️ 떡볶이 🌶️</h2>
+    <p>생일 당일, 혜자분식으로 데려가자 가은이의 눈이 휘둥그레졌다.<br><br>
+    <b>"어떻게 알았어?! 나 여기 단골인 거!"</b><br><br>
+    사장님이 씩 웃으며 늘 먹던 3단계 떡볶이를 내려놓는다. 물어보지 않고도 알아낸 최고의 서프라이즈였다.</p>
+    <div class="recap">
+      <b>📒 수사 결과</b> — 단서 ${found}/5 확보<br>${recap}<br>
+      <span style="color:var(--dim)">최종 가중치 — 떡볶이 +${S.weights.tteok} · 짜장면 ${S.weights.jja} · 탕수육 ${S.weights.tang}</span>
+    </div>
+    <button class="again" onclick="resetState();render();">↻ 처음부터 다시 하기</button>
+  </div>`;
+}
+
+/* ══════════════ TOAST ══════════════ */
+let toastTimer;
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.opacity = 1;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>t.style.opacity=0, 2200);
+}
+
+render();
+</script>
+</body>
+</html>
