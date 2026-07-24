@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<!-- 몰입 곡선 에디터 — v1.0.0 -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>몰입 곡선 에디터</title>
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>몰입 곡선 에디터</h1>
+    <span class="subtitle">게임 진행도에 따른 몰입·긴장 강도를 설계합니다</span>
+  </header>
+
+  <!-- ── 툴바 ── -->
+  <div class="toolbar">
+    <button id="btn-add-curve">+ 곡선 추가</button>
+    <button id="btn-event-mode">🚩 이벤트 배치</button>
+    <span class="spacer"></span>
+    <button id="btn-save">JSON 저장</button>
+    <label class="file-btn">JSON 불러오기<input type="file" id="file-load" accept=".json,application/json"></label>
+    <button id="btn-png">PNG 내보내기</button>
+    <button id="btn-theme" class="ghost" title="라이트/다크 전환">◐</button>
+  </div>
+
+  <div class="layout">
+    <!-- ── 좌측: 차트 + 포인트 리스트 ── -->
+    <div class="col-left">
+      <div class="chart-card">
+        <svg id="chart" viewBox="0 0 900 480" role="img" aria-label="몰입 곡선 차트"></svg>
+        <div id="tooltip"></div>
+        <div class="hint">
+          빈 곳 <kbd>클릭</kbd> 포인트 추가 · 포인트 <kbd>드래그</kbd> 이동 · 포인트 <kbd>더블클릭</kbd> 삭제 ·
+          이벤트 배치 모드에서 <kbd>클릭</kbd> 시 이벤트 추가, 깃발 <kbd>드래그</kbd>로 위치 이동
+        </div>
+      </div>
+      <div class="card">
+        <h2 id="pt-list-title">포인트</h2>
+        <div id="point-list"></div>
+      </div>
+    </div>
+
+    <!-- ── 우측: 패널 ── -->
+    <div class="panel">
+      <div class="card">
+        <h2>곡선</h2>
+        <div id="curve-list"></div>
+      </div>
+      <div class="card">
+        <h2>이벤트 마커</h2>
+        <div id="event-list"></div>
+      </div>
+      <div class="card">
+        <h2>플로우 채널 가이드</h2>
+        <div class="flow-controls">
+          <label class="toggle"><input type="checkbox" id="flow-on" checked> 플로우 채널 표시</label>
+          <div class="flow-range">시작 <input type="number" id="flow-y0" min="0" max="100" value="20"> 끝 <input type="number" id="flow-y1" min="0" max="100" value="75"></div>
+          <div class="flow-range">폭 <input type="number" id="flow-w" min="4" max="100" value="26"></div>
+          <div class="empty-note">채널 위는 과부하(불안), 아래는 지루함 구간입니다. 차트에서 양 끝 ◆ 핸들을 드래그하면 사선의 각도, 점선을 드래그하면 폭이 조절됩니다.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="assets/js/app.js"></script>
+</body>
+</html>
