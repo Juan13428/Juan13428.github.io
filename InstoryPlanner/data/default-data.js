@@ -1,4 +1,17 @@
-{
+/* ══════════════════════════════════════════════
+   Instory Planner — data/default-data.js
+   ⚠ 자동 생성 파일 — 직접 수정하지 마세요.
+
+   기본 데이터는 data/default-data.json에서 수정하고,
+   아래 명령으로 이 파일을 다시 만드세요.
+
+     node scripts/sync-fallback.mjs
+
+   이 파일은 index.html을 file://로 직접 열었을 때(fetch 불가)
+   쓰이는 폴백입니다. HTTP로 열면 .json 쪽이 우선합니다.
+   ══════════════════════════════════════════════ */
+
+const FALLBACK_DATA = {
   "profiles": [
     {
       "id": "p_jihoon",
@@ -253,4 +266,4 @@
   ],
   "activeObjectiveId": "obj_last_day",
   "startPostId": "post_start"
-}
+};

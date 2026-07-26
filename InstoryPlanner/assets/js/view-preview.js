@@ -1,6 +1,6 @@
 /* ══════════════════════════════════════════════
    Instory Planner — view-preview.js
-   버전: 1.2.0
+   버전: 1.5.0
    플레이 미리보기 탭 — 인스타그램 UI 피드 시뮬레이션
    ══════════════════════════════════════════════ */
 
@@ -62,9 +62,9 @@ function previewHud() {
    뒤로(‹)·앞으로(›)는 가능한 경우에만 노출한다. 키보드 A/D와 같은 동작. */
 function previewBar() {
   const back = P.history.length
-    ? `<button class="back-btn" onclick="App.pvBack()" title="뒤로 (A)">‹</button>` : "";
+    ? `<button class="back-btn" onclick="App.pvBack()" aria-label="뒤로 가기" title="뒤로 (A)">‹</button>` : "";
   const fwd = P.forward.length
-    ? `<button class="back-btn" onclick="App.pvForward()" title="앞으로 (D)">›</button>` : "";
+    ? `<button class="back-btn" onclick="App.pvForward()" aria-label="앞으로 가기" title="앞으로 (D)">›</button>` : "";
   const nav = (back || fwd) ? `<span class="phone-nav">${back}${fwd}</span>` : "";
 
   if (P.view.mode === "feed") {
@@ -101,11 +101,15 @@ function previewPostHtml(p, hops) {
   const author = profById(p.authorId);
   const hop = (p.id in hops) ? hops[p.id] : null;
   const cmts = p.comments || [];
-  const clues = p.clues || [];
+  /* 본문 + 댓글의 단서를 모두 합산한다 */
+  const clues = clueHosts(p).flatMap(h => h.clues);
   const foundN = clues.filter(c => P.foundClues.has(c.id)).length;
   const progress = clues.length ? ` · ${foundN}/${clues.length}` : "";
   /* 활성 목표의 단서를 품고 있는 게시글 — 기획자 뷰 전용 표식 */
   const hasLive = clues.some(c => isClueUnlocked(c.id) && !P.foundClues.has(c.id));
+  /* 댓글 안에 활성 단서가 숨어 있으면 댓글을 펼쳐 보라고 알린다 */
+  const liveInComments = (p.comments || []).some(c =>
+    (c.clues || []).some(x => isClueUnlocked(x.id) && !P.foundClues.has(x.id)));
 
   return `<article class="feed-post">
     ${(P.showClues && (p.isClue || clues.length))
@@ -115,7 +119,7 @@ function previewPostHtml(p, hops) {
          </div>`
       : ""}
 
-    <div class="fp-head" onclick="App.pvGoProfile('${p.authorId}')">
+    <div class="fp-head" onclick="App.pvGoProfile('${escJs(p.authorId)}')">
       ${avatarHtml(author, 32, true)}
       <div>
         <div class="fp-handle">${esc((author || {}).handle || "?")}
@@ -134,17 +138,30 @@ function previewPostHtml(p, hops) {
     <div class="fp-actions"><span>♡</span><span>💬</span><span>✈</span><span class="save">🔖</span></div>
     <div class="fp-likes">좋아요 ${p.likes}개</div>
 
-    <div class="fp-caption"><b>${esc((author || {}).handle || "?")}</b><span class="fp-body" data-post="${p.id}">${captionHtml(p)}</span></div>
+    <div class="fp-caption"><b>${esc((author || {}).handle || "?")}</b>${clueTextSpan(p, clueHosts(p)[0])}</div>
 
     ${(p.hashtags || []).length
       ? `<div class="fp-tags">${(p.hashtags || []).map(t => tagSpan(t)).join("")}</div>` : ""}
 
-    ${cmts.length ? `<div class="fp-more" onclick="App.pvToggleComments('${p.id}')">
-      ${P.openComments[p.id] ? "댓글 접기" : "댓글 " + cmts.length + "개 모두 보기"}</div>` : ""}
+    ${cmts.length ? `<div class="fp-more" onclick="App.pvToggleComments('${escJs(p.id)}')">
+      ${P.openComments[p.id] ? "댓글 접기" : "댓글 " + cmts.length + "개 모두 보기"}${
+        (P.showClues && liveInComments && !P.openComments[p.id]) ? ' <span class="cmt-hint">· 단서 있음</span>' : ""}</div>` : ""}
 
-    ${P.openComments[p.id] ? cmts.map(c => `
-      <div class="fp-comment"><b>${esc(c.author)}</b> ${commentHtml(c.text)}
-        <span class="muted fs-11"> 좋아요 ${c.likes}개</span></div>`).join("") : ""}
+    ${P.openComments[p.id] ? cmts.map(c => {
+      const host = { kind: "comment", id: c.id, text: c.text || "", clues: c.clues || [], post: p, comment: c };
+      const prof = profByHandle(c.author);
+      /* 작성자 핸들이 프로필과 연결되면 눌러서 이동할 수 있다 */
+      const who = prof
+        ? `<b class="fp-cmt-author" onclick="App.pvGoProfile('${escJs(prof.id)}')"
+             title="@${esc(prof.handle)} 프로필 보기">${esc(c.author)}</b>`
+        : `<b>${esc(c.author)}</b>`;
+      const n = (c.clues || []).length;
+      const found = (c.clues || []).filter(x => P.foundClues.has(x.id)).length;
+      const badge = (P.showClues && n)
+        ? `<span class="cmt-clue-badge">단서 ${found}/${n}</span>` : "";
+      return `<div class="fp-comment">${who} ${clueTextSpan(p, host)}
+        <span class="muted fs-11"> 좋아요 ${c.likes}개</span>${badge}</div>`;
+    }).join("") : ""}
 
     <div class="fp-date">${esc(p.date)}</div>
   </article>`;
@@ -161,7 +178,7 @@ function previewProgress() {
     const isActive = P.activeObjectiveId === o.id;
     const cls = pr.done ? "done" : (isActive ? "active" : "locked");
     const mark = pr.done ? "✓" : (isActive ? "▶" : "🔒");
-    return `<div class="obj-prog ${cls}" onclick="App.setActiveObjective('${o.id}')" title="클릭해서 이 목표로 전환">
+    return `<div class="obj-prog ${cls}" onclick="App.setActiveObjective('${escJs(o.id)}')" title="클릭해서 이 목표로 전환">
       <span class="obj-prog-mark">${mark}</span>
       <span class="obj-prog-title">${i + 1}. ${esc(o.title)}</span>
       <span class="mono fs-11">${pr.found}/${pr.total}</span>
@@ -206,6 +223,7 @@ function renderPreview() {
     <div class="phone">
       <div class="phone-bar">${previewBar()}</div>
       ${previewHud()}
+      ${(P.showClues && P.hint) ? `<div class="hint-bar">⚠ ${esc(P.hint)}</div>` : ""}
       ${previewProfileHead()}
       <div class="phone-feed">${feed}</div>
       <div class="phone-tabbar"><span>🏠</span><span>🔍</span><span>➕</span><span>🎬</span><span>👤</span></div>

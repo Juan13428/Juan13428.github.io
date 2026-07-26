@@ -1,17 +1,55 @@
 /* ══════════════════════════════════════════════
    Instory Planner — view-posts.js
-   버전: 1.2.0
+   버전: 1.5.0
    게시글 탭 렌더링 (본문·해시태그·단서·댓글 편집)
    ══════════════════════════════════════════════ */
+
+/* ── 단서 편집 행 (본문·댓글 공용) ──
+   host.id가 빈 문자열이면 게시글 본문, 아니면 그 댓글에 붙는 단서다. */
+function clueRows(post, host) {
+  const label = host.kind === "comment" ? "댓글" : "본문";
+  return host.clues.map(c => {
+    const owner = objectiveOfClue(c.id);
+    const missing = !!c.phrase && (host.text || "").indexOf(c.phrase) === -1;
+    const args = `'${escJs(post.id)}','${escJs(host.id)}','${escJs(c.id)}'`;
+    return `<div class="clue-row">
+      <input class="grow ${missing ? "bad" : ""}" placeholder="${label} 속 단서 문구"
+        value="${esc(c.phrase)}" onchange="App.updClue(${args},'phrase',this.value)">
+      <input class="grow" placeholder="이 단서로 무엇을 알게 되는가"
+        value="${esc(c.note)}" onchange="App.updClue(${args},'note',this.value)">
+      <select class="w-170" onchange="App.assignClueTo('${escJs(c.id)}',this.value)">
+        <option value="">— 목표 미배정 —</option>
+        ${S.objectives.map(o =>
+          `<option value="${o.id}" ${owner && owner.id === o.id ? "selected" : ""}>${esc(o.title.slice(0, 20))}</option>`).join("")}
+      </select>
+      <button class="btn sm red" aria-label="단서 삭제" title="단서 삭제"
+        onclick="App.delClue(${args})">×</button>
+    </div>${missing ? `<div class="err fs-11 clue-flag">⛔ 이 문구가 ${label}에 없습니다 — 드래그로 찾을 수 없습니다</div>` : ""
+    }${!owner ? `<div class="warn fs-11 clue-flag">⛔ 목표에 배정되지 않았습니다 — 플레이 중 잠긴 채로 남습니다</div>` : ""}`;
+  }).join("");
+}
+
 
 function renderPosts() {
   const hops = computeHops();
   const keyword = U.search.replace(/^#/, "");
 
+  /* 검색 대상: 본문 · 해시태그 · 단서 문구 · 단서 메모 · 이미지 설명 · 댓글 */
+  const matches = (p) => {
+    if (!U.search) return true;
+    const hay = [
+      p.content, p.imageDesc,
+      ...effTags(p),
+      ...(p.clues || []).flatMap(c => [c.phrase, c.note]),
+      ...(p.comments || []).map(c => c.text),
+    ].join(" ");
+    return hay.includes(U.search) || hay.includes(keyword);
+  };
+
   const filtered = S.posts.filter(p =>
     (U.filterAuthor === "all" || p.authorId === U.filterAuthor) &&
     (!U.clueOnly || p.isClue) &&
-    (!U.search || (p.content || "").includes(U.search) || effTags(p).some(t => t.includes(keyword)))
+    matches(p)
   );
 
   /* ── 상단 필터 바 ── */
@@ -26,7 +64,7 @@ function renderPosts() {
           `<option value="${p.id}" ${U.filterAuthor === p.id ? "selected" : ""}>${esc(p.name)}</option>`).join("")}
       </select></label>
 
-    <label class="field"><span>검색 (본문·태그)</span>
+    <label class="field"><span>검색 (본문·태그·단서·댓글)</span>
       <input class="w-170" value="${esc(U.search)}" placeholder="키워드"
         onchange="App.setFilter('search',this.value)"></label>
 
@@ -47,7 +85,7 @@ function renderPosts() {
       ...(p.comments || []).flatMap(c => inlineTags(c.text)),
     ]));
 
-    const head = `<div class="post-head" onclick="App.toggleOpen('${p.id}')">
+    const head = `<div class="post-head" onclick="App.toggleOpen('${escJs(p.id)}')">
       ${avatarHtml(author, 30)}
       <span class="bold fs-13">${esc((author || {}).name || "?")}</span>
       <span class="mono muted fs-12">${esc(p.date)}</span>
@@ -67,95 +105,85 @@ function renderPosts() {
 
       <div class="row">
         <label class="field"><span>작성자</span>
-          <select class="w-140" onchange="App.updPost('${p.id}','authorId',this.value)">
+          <select class="w-140" onchange="App.updPost('${escJs(p.id)}','authorId',this.value)">
             ${S.profiles.map(pr =>
               `<option value="${pr.id}" ${p.authorId === pr.id ? "selected" : ""}>${esc(pr.name)}</option>`).join("")}
           </select></label>
         <label class="field"><span>날짜</span>
           <input type="date" class="w-150" value="${esc(p.date)}"
-            onchange="App.updPost('${p.id}','date',this.value)"></label>
+            onchange="App.updPost('${escJs(p.id)}','date',this.value)"></label>
         <label class="field"><span>좋아요</span>
           <input type="number" class="w-90" value="${p.likes}"
-            onchange="App.updPost('${p.id}','likes',this.value)"></label>
+            onchange="App.updPost('${escJs(p.id)}','likes',this.value)"></label>
         <label class="field grow"><span>해시태그 (쉼표/공백 구분)</span>
           <input value="${esc((p.hashtags || []).map(t => "#" + t).join(" "))}" placeholder="#필름사진 #골목산책"
-            onchange="App.updPost('${p.id}','hashtags',this.value)"></label>
+            onchange="App.updPost('${escJs(p.id)}','hashtags',this.value)"></label>
       </div>
 
       <label class="field"><span>본문 — #태그를 직접 쓰면 인라인 해시태그로 자동 인식됩니다</span>
-        <textarea onchange="App.updPost('${p.id}','content',this.value)">${esc(p.content)}</textarea></label>
+        <textarea onchange="App.updPost('${escJs(p.id)}','content',this.value)">${esc(p.content)}</textarea></label>
       ${inline.length
         ? `<div class="muted fs-12">인라인 태그 감지: ${inline.map(t => "#" + esc(t)).join(" ")}</div>`
         : ""}
 
       <label class="field"><span>이미지 설명 (아트 발주용 메모)</span>
         <input value="${esc(p.imageDesc)}" placeholder="예) 해질녘 골목, 세 명의 그림자"
-          onchange="App.updPost('${p.id}','imageDesc',this.value)"></label>
+          onchange="App.updPost('${escJs(p.id)}','imageDesc',this.value)"></label>
 
       <div class="clue-box ${p.isClue ? "on" : ""}">
         <label class="inline pad">
           <input type="checkbox" ${p.isClue ? "checked" : ""}
-            onchange="App.updPost('${p.id}','isClue',this.checked)">
+            onchange="App.updPost('${escJs(p.id)}','isClue',this.checked)">
           <span class="bold" style="color:${p.isClue ? "var(--red)" : "var(--muted)"}">단서 게시글</span></label>
 
         ${p.isClue ? `
         <label class="field"><span>연결 대화 이벤트</span>
-          <select class="w-100" onchange="App.updPost('${p.id}','clueEvent',this.value)">
+          <select class="w-100" onchange="App.updPost('${escJs(p.id)}','clueEvent',this.value)">
             ${C_EVENTS.map(c => `<option ${p.clueEvent === c ? "selected" : ""}>${c}</option>`).join("")}
           </select></label>
         <label class="field grow"><span>단서 메모 (무엇을 알게 되는가)</span>
-          <input value="${esc(p.clueNote)}" onchange="App.updPost('${p.id}','clueNote',this.value)"></label>
+          <input value="${esc(p.clueNote)}" onchange="App.updPost('${escJs(p.id)}','clueNote',this.value)"></label>
         <div class="field full">
           <div class="comment-head">
-            <span class="muted fs-11" style="letter-spacing:.04em">단서 문구 — 드래그 판정 대상. 본문에 실제로 있는 문장이어야 합니다</span>
-            <button class="btn sm dim" onclick="App.addClue('${p.id}')">+ 단서 추가</button>
+            <span class="muted fs-11" style="letter-spacing:.04em">본문 단서 — 드래그 판정 대상. 본문에 실제로 있는 문장이어야 합니다</span>
+            <button class="btn sm dim" onclick="App.addClue('${escJs(p.id)}','')">+ 단서 추가</button>
           </div>
-          ${(p.clues || []).map(c => {
-            const owner = objectiveOfClue(c.id);
-            const missing = (p.content || "").indexOf(c.phrase) === -1;
-            return `<div class="clue-row">
-              <input class="grow ${missing ? "bad" : ""}" placeholder="본문 속 단서 문구" value="${esc(c.phrase)}"
-                onchange="App.updClue('${p.id}','${c.id}','phrase',this.value)">
-              <input class="grow" placeholder="이 단서로 무엇을 알게 되는가" value="${esc(c.note)}"
-                onchange="App.updClue('${p.id}','${c.id}','note',this.value)">
-              <select class="w-170" onchange="App.assignClueTo('${c.id}',this.value)">
-                <option value="">— 목표 미배정 —</option>
-                ${S.objectives.map(o =>
-                  `<option value="${o.id}" ${owner && owner.id === o.id ? "selected" : ""}>${esc(o.title.slice(0, 20))}</option>`).join("")}
-              </select>
-              <button class="btn sm red" onclick="App.delClue('${p.id}','${c.id}')">×</button>
-            </div>${missing ? '<div class="err fs-11" style="padding-left:2px">⛔ 이 문구가 본문에 없습니다 — 드래그로 찾을 수 없습니다</div>' : ""}`;
-          }).join("")}
-          ${(p.clues || []).length ? "" : '<div class="muted fs-12" style="padding:6px 0">단서가 없습니다.</div>'}
+          ${clueRows(p, clueHosts(p)[0])}
+          ${(p.clues || []).length ? "" : `<div class="muted fs-12" style="padding:6px 0">본문 단서가 없습니다.</div>`}
         </div>` : ""}
 
         <label class="inline pad">
           <input type="radio" name="startPost" ${p.id === S.startPostId ? "checked" : ""}
-            onchange="App.setStart('${p.id}')">
+            onchange="App.setStart('${escJs(p.id)}')">
           <span style="color:${p.id === S.startPostId ? "var(--amber)" : "var(--muted)"}">시작 게시글로 지정</span></label>
       </div>
 
       <div>
         <div class="comment-head">
-          <span class="muted fs-11" style="letter-spacing:.04em">댓글 (${(p.comments || []).length}) — 댓글 안에도 #태그를 쓸 수 있습니다</span>
-          <button class="btn sm dim" onclick="App.addComment('${p.id}')">+ 댓글 추가</button>
+          <span class="muted fs-11" style="letter-spacing:.04em">댓글 (${(p.comments || []).length}) — #태그와 단서를 댓글에도 넣을 수 있습니다</span>
+          <button class="btn sm dim" onclick="App.addComment('${escJs(p.id)}')">+ 댓글 추가</button>
         </div>
         ${(p.comments || []).map(c => `
           <div class="comment-row">
             <input class="w-130" placeholder="작성자 핸들" value="${esc(c.author)}"
-              onchange="App.updComment('${p.id}','${c.id}','author',this.value)">
+              onchange="App.updComment('${escJs(p.id)}','${escJs(c.id)}','author',this.value)">
             <input class="grow" placeholder="댓글 내용 (#태그 가능)" value="${esc(c.text)}"
-              onchange="App.updComment('${p.id}','${c.id}','text',this.value)">
+              onchange="App.updComment('${escJs(p.id)}','${escJs(c.id)}','text',this.value)">
             <input type="number" class="w-70" title="좋아요" value="${c.likes}"
-              onchange="App.updComment('${p.id}','${c.id}','likes',this.value)">
-            <button class="btn sm red" onclick="App.delComment('${p.id}','${c.id}')">×</button>
-          </div>`).join("")}
+              onchange="App.updComment('${escJs(p.id)}','${escJs(c.id)}','likes',this.value)">
+            <button class="btn sm dim" title="이 댓글에 단서 추가"
+              onclick="App.addClue('${escJs(p.id)}','${escJs(c.id)}')">+ 단서</button>
+            <button class="btn sm red" aria-label="댓글 삭제" title="댓글 삭제" onclick="App.delComment('${escJs(p.id)}','${escJs(c.id)}')">×</button>
+          </div>
+          ${(c.clues || []).length ? `<div class="cmt-clues">${
+            clueRows(p, { kind: "comment", id: c.id, text: c.text || "", clues: c.clues, post: p, comment: c })
+          }</div>` : ""}`).join("")}
       </div>
 
       <div class="post-foot">
         <span class="mono muted fs-11 push">${esc(p.id)}</span>
-        <button class="btn sm" onclick="App.dupPost('${p.id}')">복제</button>
-        <button class="btn sm red" onclick="App.delPost('${p.id}')">삭제</button>
+        <button class="btn sm" onclick="App.dupPost('${escJs(p.id)}')">복제</button>
+        <button class="btn sm red" onclick="App.delPost('${escJs(p.id)}')">삭제</button>
       </div>
 
     </div>`;

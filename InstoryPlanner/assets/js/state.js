@@ -1,15 +1,23 @@
 /* ══════════════════════════════════════════════
    Instory Planner — state.js
-   버전: 1.2.0
+   버전: 1.5.0
    전역 상태 · 공용 유틸 · 데이터 로드
    ══════════════════════════════════════════════ */
 
 /* ── 상수 ── */
-const APP_VERSION = "1.2.0";
+const APP_VERSION = "1.5.0";
 const C_EVENTS = ["C1", "C2", "C3", "C4", "C5"];
 const DATA_URL = "data/default-data.json";
 /* 본문·댓글 안에 직접 쓴 해시태그를 찾는 패턴 (영문·숫자·밑줄·한글) */
 const TAG_RE = /#([0-9A-Za-z_가-힣]+)/g;
+
+/* 단서 판정 밸런싱 값 —
+   선택 영역에서 '단서가 아닌 부분'의 허용 길이.
+   해시태그·조사·문장부호가 함께 잡히는 것은 정상이므로 넉넉히 준다.
+   단서 여러 개를 한 번에 드래그하면 그 길이는 모두 '단서 부분'으로 계산되므로
+   사이 간격만 이 예산에 들어간다.
+   본문을 통째로 긁어 쓸어담는 것만 걸러내는 용도다. Infinity로 두면 제한 해제. */
+const CLUE_SELECTION_SLACK = 40;
 
 /* ── 기획 데이터 (JSON에서 로드, 편집 대상) ── */
 const S = {
@@ -42,6 +50,7 @@ const P = {
   clearedObjectives: [],   // 완료한 목표 id (완료 순서)
   activeObjectiveId: "",   // 현재 진행 중인 목표 (빈 문자열이면 전체 잠금)
   autoAdvance: true,       // 목표 완료 시 다음 목표로 자동 전환
+  hint: null,              // 기획자 뷰 안내 문구 (과대선택 등)
   _justFound: null,        // { ids:Set } — sweep 애니메이션 1회용
 };
 
@@ -49,248 +58,15 @@ const P = {
 let resetFeedScroll = false;
 function requestFeedScrollReset() { resetFeedScroll = true; }
 
-/* ── file:// 직접 실행용 폴백 데이터 ──
-   data/default-data.json을 수정하면 이 값도 함께 갱신할 것. */
-const FALLBACK_DATA = {
-    "profiles": [
-      {
-        "id": "p_jihoon",
-        "handle": "jihoon_p",
-        "name": "박지훈",
-        "relationship": "고인 (플레이어=AI)",
-        "bio": "그냥, 기록.",
-        "followers": 214,
-        "following": 180,
-        "color": "#0095f6"
-      },
-      {
-        "id": "p_jiwon",
-        "handle": "jiwon.p_",
-        "name": "박지원",
-        "relationship": "여동생 (18)",
-        "bio": "고3 | 합격기원 🙏",
-        "followers": 342,
-        "following": 501,
-        "color": "#c77400"
-      },
-      {
-        "id": "p_gaeun",
-        "handle": "ga.eun__",
-        "name": "윤가은",
-        "relationship": "친구",
-        "bio": "필름 속에서 살기 📷",
-        "followers": 1204,
-        "following": 322,
-        "color": "#ed4956"
-      },
-      {
-        "id": "p_mother",
-        "handle": "sunhwa_kim",
-        "name": "어머니",
-        "relationship": "어머니",
-        "bio": "가족이 전부",
-        "followers": 58,
-        "following": 120,
-        "color": "#1e9e57"
-      }
-    ],
-    "posts": [
-      {
-        "id": "post_start",
-        "authorId": "p_jihoon",
-        "date": "2025-11-02",
-        "content": "오랜만에 셋이서. 이 날씨, 이 골목. 다시 오긴 어렵겠지.",
-        "imageDesc": "해질녘 골목, 세 명의 그림자",
-        "hashtags": [
-          "골목산책",
-          "필름사진"
-        ],
-        "likes": 43,
-        "isClue": true,
-        "clueEvent": "C1",
-        "clueNote": "시작 게시글. C1 대화의 앵커.",
-        "clues": [
-          {
-            "id": "clue_last_day",
-            "phrase": "다시 오긴 어렵겠지",
-            "note": "이미 끝을 예감하고 있었다"
-          }
-        ],
-        "comments": [
-          {
-            "id": "c_start_1",
-            "author": "ga.eun__",
-            "text": "이 사진 내가 찍은 거 잊지 마라",
-            "likes": 5
-          },
-          {
-            "id": "c_start_2",
-            "author": "jiwon.p_",
-            "text": "오빠 나만 빼고 갔네?",
-            "likes": 2
-          }
-        ]
-      },
-      {
-        "id": "post_g1",
-        "authorId": "p_gaeun",
-        "date": "2025-11-03",
-        "content": "현상 맡긴 필름 찾아옴. 잘 나온 건 몇 장 없지만 #그날의빛 은 담겼다.",
-        "imageDesc": "필름 스캔 4분할 컷",
-        "hashtags": [
-          "필름사진",
-          "현상소"
-        ],
-        "likes": 87,
-        "isClue": true,
-        "clueEvent": "C1",
-        "clueNote": "가은 계정 진입 지점. 홉 1.",
-        "clues": [
-          {
-            "id": "clue_few_frames",
-            "phrase": "잘 나온 건 몇 장 없지만",
-            "note": "찍은 장수에 비해 남은 게 적다"
-          }
-        ],
-        "comments": [
-          {
-            "id": "c_g1_1",
-            "author": "jihoon_p",
-            "text": "마지막 장, 나 눈 감았지 #흑역사",
-            "likes": 9
-          }
-        ]
-      },
-      {
-        "id": "post_j1",
-        "authorId": "p_jiwon",
-        "date": "2025-11-05",
-        "content": "오빠가 알려준 골목. 혼자 와보니까 훨씬 길다. 새벽에 오면 왜 좋은지 알겠어.",
-        "imageDesc": "새벽 골목, 가로등 하나",
-        "hashtags": [
-          "골목산책",
-          "새벽"
-        ],
-        "likes": 61,
-        "isClue": true,
-        "clueEvent": "C2",
-        "clueNote": "지원이 오빠의 동선을 따라가고 있다.",
-        "clues": [
-          {
-            "id": "clue_alone_walk",
-            "phrase": "혼자 와보니까 훨씬 길다",
-            "note": "지원이 이미 혼자 다녀왔다"
-          },
-          {
-            "id": "clue_dawn_habit",
-            "phrase": "새벽에 오면 왜 좋은지 알겠어",
-            "note": "새벽 시간대가 반복 키워드"
-          }
-        ],
-        "comments": [
-          {
-            "id": "c_j1_1",
-            "author": "ga.eun__",
-            "text": "너 혼자 다니지 마 #새벽",
-            "likes": 12
-          }
-        ]
-      },
-      {
-        "id": "post_g2",
-        "authorId": "p_gaeun",
-        "date": "2025-11-08",
-        "content": "안 올릴 사진이 하나 있다. 지훈이가 지워달라고 했으니까 그냥 갖고만 있을게.",
-        "imageDesc": "현상소 봉투, 사진 한 장이 뒤집혀 있음",
-        "hashtags": [
-          "현상소",
-          "새벽"
-        ],
-        "likes": 34,
-        "isClue": true,
-        "clueEvent": "C3",
-        "clueNote": "가은이 숨기고 있는 사진. C3 분기 트리거.",
-        "clues": [
-          {
-            "id": "clue_hidden_photo",
-            "phrase": "안 올릴 사진이 하나 있다",
-            "note": "공개하지 않은 사진의 존재"
-          },
-          {
-            "id": "clue_asked_delete",
-            "phrase": "지훈이가 지워달라고 했으니까",
-            "note": "지훈 본인이 삭제를 요청했다"
-          }
-        ],
-        "comments": [
-          {
-            "id": "c_g2_1",
-            "author": "sunhwa_kim",
-            "text": "가은아 언제 한번 집에 와",
-            "likes": 3
-          }
-        ]
-      },
-      {
-        "id": "post_m1",
-        "authorId": "p_mother",
-        "date": "2025-11-11",
-        "content": "요즘도 새벽에 눈이 떠진다. 그 애 방 불이 켜져 있는 것 같아서.",
-        "imageDesc": "새벽 거실, 복도 끝 방문",
-        "hashtags": [
-          "새벽",
-          "기일"
-        ],
-        "likes": 18,
-        "isClue": true,
-        "clueEvent": "C4",
-        "clueNote": "어머니의 수면 패턴. 새벽 키워드 수렴점.",
-        "clues": [
-          {
-            "id": "clue_mother_dawn",
-            "phrase": "그 애 방 불이 켜져 있는 것 같아서",
-            "note": "지훈의 방이 아직 정리되지 않았다"
-          }
-        ],
-        "comments": []
-      }
-    ],
-    "objectives": [
-      {
-        "id": "obj_last_day",
-        "title": "지훈의 마지막 하루를 재구성하라",
-        "desc": "골목에서 찍힌 사진과 필름에 남은 흔적으로 그날의 시간대를 좁힌다.",
-        "event": "C1",
-        "clueIds": [
-          "clue_last_day",
-          "clue_few_frames"
-        ]
-      },
-      {
-        "id": "obj_dawn",
-        "title": "'새벽'이라는 단어를 쫓아라",
-        "desc": "세 사람이 각자 다른 맥락에서 새벽을 말하고 있다. 공통점을 찾는다.",
-        "event": "C2",
-        "clueIds": [
-          "clue_alone_walk",
-          "clue_dawn_habit",
-          "clue_mother_dawn"
-        ]
-      },
-      {
-        "id": "obj_hidden",
-        "title": "가은이 올리지 않은 사진",
-        "desc": "가은의 계정에서 삭제 요청의 흔적을 찾아낸다.",
-        "event": "C3",
-        "clueIds": [
-          "clue_hidden_photo",
-          "clue_asked_delete"
-        ]
-      }
-    ],
-    "activeObjectiveId": "obj_last_day",
-    "startPostId": "post_start"
-  };
+/* ── file:// 폴백 데이터 ──
+   data/default-data.js가 전역 FALLBACK_DATA를 정의한다 (index.html에서 먼저 로드).
+   그 파일은 자동 생성물이므로 손대지 말 것 —
+   기본 데이터는 data/default-data.json에서 고치고 `node scripts/sync-fallback.mjs` 실행. */
+function fallbackData() {
+  return (typeof FALLBACK_DATA !== "undefined")
+    ? JSON.parse(JSON.stringify(FALLBACK_DATA))
+    : { profiles: [], posts: [], objectives: [], startPostId: "", activeObjectiveId: "" };
+}
 
 /* ── 공용 유틸 ── */
 const uid = () => Math.random().toString(36).slice(2, 9);
@@ -301,13 +77,31 @@ function esc(s) {
     .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 }
 
+/* 인라인 이벤트 핸들러의 JS 문자열 리터럴에 값을 넣을 때 사용한다.
+   esc()는 작은따옴표를 처리하지 않으므로, onclick="App.f('${esc(v)}')" 형태는
+   v에 '가 들어오면 문자열을 탈출해 임의 코드가 실행된다.
+   해시태그 입력값과 import한 JSON의 id가 실제로 이 경로를 탄다. */
+function escJs(v) {
+  return esc(String(v ?? "")
+    .replace(/\\/g, "\\\\")
+    .replace(/'/g, "\\'")
+    .replace(/\r/g, "\\r")
+    .replace(/\n/g, "\\n")
+    .replace(/\u2028/g, "\\u2028")
+    .replace(/\u2029/g, "\\u2029"));
+}
+
 function profById(id) { return S.profiles.find(p => p.id === id); }
 function postById(id) { return S.posts.find(p => p.id === id); }
 
-/* "#a, b  #c" -> ["a","b","c"] (중복 제거) */
+/* "#a, b  #c" 또는 "#a#b" -> ["a","b","c"] (중복 제거)
+   구분자뿐 아니라 붙여 쓴 #도 경계로 본다. */
 function normTags(raw) {
   return Array.from(new Set(
-    String(raw || "").split(/[,\s]+/).map(t => t.replace(/^#/, "").trim()).filter(Boolean)
+    String(raw || "")
+      .split(/[,\s]+|(?=#)/)
+      .map(t => t.replace(/^#/, "").trim())
+      .filter(Boolean)
   ));
 }
 
@@ -373,17 +167,54 @@ function tagMapAll() {
 
 function objById(id) { return S.objectives.find(o => o.id === id); }
 
-/* 전체 단서를 소속 게시글과 함께 평탄화 */
+/* ── 단서 호스트 ──
+   단서는 게시글 본문과 댓글 양쪽에 붙을 수 있다.
+   둘을 같은 모양으로 다뤄 판정·검증·렌더가 갈라지지 않게 한다. */
+function clueHosts(post) {
+  return [
+    { kind: "content", id: "", text: post.content || "", clues: post.clues || [], post },
+    ...(post.comments || []).map(c => ({
+      kind: "comment", id: c.id, text: c.text || "", clues: c.clues || [], post, comment: c,
+    })),
+  ];
+}
+
+/* postId + commentId(빈 문자열이면 본문)로 호스트를 찾는다 */
+function hostOf(postId, commentId) {
+  const p = postById(postId);
+  if (!p) return null;
+  return clueHosts(p).find(h => h.id === (commentId || "")) || null;
+}
+
+/* 전체 단서를 소속 위치와 함께 평탄화 */
 function allClues() {
-  return S.posts.flatMap(p => (p.clues || []).map(c => ({ ...c, post: p })));
+  return S.posts.flatMap(p =>
+    clueHosts(p).flatMap(h => h.clues.map(c => ({ ...c, post: p, host: h })))
+  );
 }
 
 function clueById(id) {
   for (const p of S.posts) {
-    const c = (p.clues || []).find(x => x.id === id);
-    if (c) return { ...c, post: p };
+    for (const h of clueHosts(p)) {
+      const c = h.clues.find(x => x.id === id);
+      if (c) return { ...c, post: p, host: h };
+    }
   }
   return null;
+}
+
+/* 목록·경고에 쓸 위치 표시 */
+function clueLocation(entry) {
+  const h = entry && entry.host;
+  if (!h) return "";
+  return h.kind === "comment" ? `댓글 @${h.comment.author || "?"}` : "본문";
+}
+
+/* 핸들로 프로필 찾기 (댓글 작성자 → 프로필 이동) */
+function profByHandle(handle) {
+  const key = String(handle || "").replace(/^@/, "").trim().toLowerCase();
+  if (!key) return null;
+  return S.profiles.find(p => String(p.handle || "").toLowerCase() === key) || null;
 }
 
 /* 이 단서를 요구하는 목표 (한 단서는 최대 1개 목표에만 속함) */
@@ -438,6 +269,7 @@ function resetPlayState() {
   P.visited = {};
   P.foundClues = new Set();
   P.clearedObjectives = [];
+  P.hint = null;
   P.activeObjectiveId = S.activeObjectiveId;
   P._justFound = null;
 }
@@ -460,15 +292,24 @@ function applyData(d) {
       isClue: false, clueEvent: "C1", clueNote: "", imageDesc: "",
       ...p,
     };
-    if (Array.isArray(post.clues)) {
-      post.clues = post.clues.map(c => ({ id: c.id || "clue_" + uid(), phrase: c.phrase || "", note: c.note || "" }));
-    } else if (Array.isArray(post.cluePhrases)) {
-      post.clues = post.cluePhrases.filter(Boolean)
-        .map(phrase => ({ id: "clue_" + uid(), phrase, note: "" }));
-    } else {
-      post.clues = [];
-    }
+    const normClues = (list, legacy) => {
+      if (Array.isArray(list)) {
+        return list.map(c => ({ id: c.id || "clue_" + uid(), phrase: c.phrase || "", note: c.note || "" }));
+      }
+      if (Array.isArray(legacy)) {
+        return legacy.filter(Boolean).map(phrase => ({ id: "clue_" + uid(), phrase, note: "" }));
+      }
+      return [];
+    };
+
+    post.clues = normClues(post.clues, post.cluePhrases);
     delete post.cluePhrases;
+
+    post.comments = (post.comments || []).map(c => ({
+      id: c.id || "c_" + uid(), author: c.author || "", text: c.text || "", likes: c.likes || 0,
+      clues: normClues(c.clues),
+    }));
+
     return post;
   });
 
@@ -494,6 +335,8 @@ function applyData(d) {
   resetPlayState();
 }
 
+let usedFallback = false;
+
 async function loadDefaultData() {
   try {
     const res = await fetch(DATA_URL, { cache: "no-store" });
@@ -501,7 +344,8 @@ async function loadDefaultData() {
     applyData(await res.json());
   } catch (e) {
     /* file:// 로 직접 열었거나 fetch 실패 -> 폴백 사용 */
-    console.warn("기본 데이터 로드 실패, FALLBACK_DATA 사용:", e.message);
-    applyData(JSON.parse(JSON.stringify(FALLBACK_DATA)));
+    console.warn("기본 데이터 로드 실패, 폴백 사용:", e.message);
+    applyData(fallbackData());
+    usedFallback = true;
   }
 }

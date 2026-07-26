@@ -26,9 +26,12 @@ InstoryPlanner/
 │       ├── keyboard.js         ← 미리보기 키보드 단축키 (A/D/W/S)
 │       └── app.js              ← 진입점: App 액션 객체 · render() · 초기화
 ├── data/
-│   └── default-data.json       ← 초기 로드되는 기획 데이터
+│   ├── default-data.json       ← 초기 로드되는 기획 데이터 (여기를 수정한다)
+│   └── default-data.js         ← ⚠ 자동 생성. file:// 실행용 폴백
 ├── scripts/
-│   └── server.ps1              ← 로컬 개발 서버
+│   ├── server.ps1              ← 로컬 개발 서버
+│   ├── sync-fallback.mjs       ← default-data.json → .js 재생성
+│   └── smoke-test.mjs          ← 헤드리스 스모크 테스트 (jsdom)
 └── archive/
     ├── single-file-v3.html         ← 분리 전 단일 파일 원본
     └── text-highlight-prototype.html ← 드래그 하이라이트 참고 원본
@@ -50,13 +53,21 @@ InstoryPlanner/
 
 ## 코딩 규칙
 
+### 0. 변경 후 반드시 실행할 것
+```bash
+node scripts/sync-fallback.mjs     # 기본 데이터를 고쳤다면
+node scripts/smoke-test.mjs        # 항상 (npm i -D jsdom 필요)
+```
+`smoke-test.mjs`는 index.html의 `<script>` 순서를 그대로 읽어 앱을 띄운다.
+새 JS 파일을 만들고 index.html 등록을 빠뜨리면 여기서 잡힌다.
+
 ### 1. 파일 분리
 - HTML, CSS, JavaScript는 **반드시 별도 파일**로 유지한다. 인라인 `<style>`/`<script>` 금지.
 - JS는 기능 단위로 분리한다. 새 탭을 추가하면 `view-*.js`를 새로 만들고 `index.html`에 로드한다.
 - **로드 순서를 지킨다**: `state.js → clue-highlight.js → view-*.js → io.js → keyboard.js → app.js`.
   뒤 파일이 앞 파일의 전역 함수를 사용하므로 순서를 바꾸지 않는다.
-- 기본 데이터 변경은 `data/default-data.json`만 수정하면 된다.
-- `state.js`의 `FALLBACK_DATA`는 `file://` 직접 실행용 폴백 — JSON을 바꾸면 함께 갱신한다.
+- 기본 데이터는 **`data/default-data.json`만** 수정하고, `node scripts/sync-fallback.mjs`를 실행한다.
+  `data/default-data.js`는 자동 생성물이므로 직접 편집하지 말 것 (`file://` 실행용 폴백).
 
 ### 2. 데이터 스키마 (JSON 저장/불러오기 공용)
 ```json
@@ -70,7 +81,10 @@ InstoryPlanner/
     "content": "", "imageDesc": "", "hashtags": [""], "likes": 0,
     "isClue": false, "clueEvent": "C1", "clueNote": "",
     "clues": [{ "id": "clue_*", "phrase": "본문 속 문장", "note": "무엇을 알게 되는가" }],
-    "comments": [{ "id": "c_*", "author": "", "text": "", "likes": 0 }]
+    "comments": [{
+      "id": "c_*", "author": "핸들", "text": "", "likes": 0,
+      "clues": [{ "id": "clue_*", "phrase": "댓글 속 문장", "note": "" }]
+    }]
   }],
   "objectives": [{
     "id": "obj_*", "title": "", "desc": "", "event": "C1",
@@ -89,6 +103,19 @@ InstoryPlanner/
   구버전 `cluePhrases: string[]` → `clues[]` 변환, 유령 `clueIds` 참조 제거,
   중복 소속 정리, 누락 필드 기본값 채움.
 
+### 2-0. 단서 호스트 — 본문과 댓글
+단서는 **게시글 본문과 댓글 양쪽**에 붙는다. 둘을 갈라서 다루지 말 것.
+- `clueHosts(post)` → `[본문 호스트, ...댓글 호스트]`. 각 호스트는 `{kind, id, text, clues}`.
+  `kind`는 `"content"` 또는 `"comment"`, `id`는 본문이면 빈 문자열, 댓글이면 댓글 id.
+- `hostOf(postId, commentId)`로 조회한다. `allClues()` / `clueById()`는 `host`를 함께 돌려준다.
+- 미리보기에서 판정 대상 텍스트는 `.clue-text[data-post][data-comment]` 하나로 통일했다.
+  `bodiesInRange()`가 이 클래스를 찾으므로, 새 텍스트에 단서를 붙이려면
+  `clueTextSpan(post, host)`으로 렌더하기만 하면 된다.
+- 새 검증·집계를 추가할 때 `post.clues`만 훑으면 댓글 단서가 누락된다.
+  `allClues()` 또는 `clueHosts(p).flatMap(h => h.clues)`를 쓸 것.
+- 댓글 작성자 핸들이 프로필과 일치하면(`profByHandle`) 눌러서 프로필로 이동한다.
+  일치하는 프로필이 없으면 링크로 만들지 않는다.
+
 ### 2-1. 목표 잠금 규칙 (핵심 게임 규칙)
 - `isClueUnlocked(clueId)` — 활성 목표(`P.activeObjectiveId`)의 `clueIds`에 있어야 `true`.
 - 잠긴 단서를 드래그하면 **아무 반응도 하지 않는다** (오답과 동일하게 처리).
@@ -106,6 +133,19 @@ InstoryPlanner/
   포커스가 끊기므로 주의.
 - 사용자 입력 문자열은 **반드시 `esc()`** 를 거쳐 삽입한다.
 
+### 2-2. 출력 이스케이프 — 빠뜨리면 임의 코드 실행
+템플릿 문자열로 HTML을 만들기 때문에 삽입 위치에 맞는 함수를 써야 한다.
+
+| 위치 | 함수 | 예 |
+|---|---|---|
+| 텍스트·속성값 | `esc()` | `<span>${esc(v)}</span>` |
+| 인라인 핸들러의 JS 문자열 | `escJs()` | `onclick="App.f('${escJs(v)}')"` |
+
+`esc()`는 작은따옴표를 처리하지 않는다. 인라인 핸들러에 `esc()`를 쓰면
+값에 `'`가 들어올 때 문자열을 탈출해 임의 코드가 실행된다.
+**해시태그 입력값과 import한 JSON의 id가 실제로 이 경로를 탄다** — 생성된 id라고 방심하지 말 것.
+`scripts/smoke-test.mjs`의 "보안" 그룹이 이를 검사한다.
+
 ### 3-1. 상태 분리
 - `S` = 저장되는 기획 데이터 (profiles / posts / objectives / startPostId / activeObjectiveId)
 - `U` = 편집 UI 상태 (열린 탭, 펼친 게시글, 필터) — 저장하지 않음
@@ -121,6 +161,33 @@ InstoryPlanner/
   - `pvForward()` (D) → 현재 화면을 history에 push
 - **뒤로/앞으로는 `P.tagJumps`를 증가시키지 않는다.** 이동 횟수는 새로운 탐색의 지표이지
   되짚어 가기의 지표가 아니다. 이 규칙을 바꾸면 홉 설계 검증이 오염된다.
+
+### 3-2-1. 드래그 판정 범위 (clue-highlight.js) — 되돌리지 말 것
+- 선택 범위가 `.fp-body` 안에 **포함**되는지 보면 안 된다.
+  `commonAncestorContainer` + `closest()` 방식은 선택이 본문 밖으로 한 글자만 벗어나도
+  부모(`.fp-caption`, `article`)를 가리켜 `null`이 되고 판정이 통째로 건너뛰어진다.
+  특히 **본문 맨 앞 단서**는 굵은 사용자명 바로 옆에서 시작하므로 거의 항상 여기에 걸렸다.
+- 대신 `bodiesInRange()`로 **교차**하는 본문을 찾고, `clampSelection()`으로 본문 경계에
+  맞춰 잘라서 오프셋을 계산한다.
+- `getCharOffset()`은 **Range로 길이를 재야 한다.** 텍스트 노드만 훑는 TreeWalker 방식은
+  경계 컨테이너가 **요소 노드**일 때(브라우저가 자주 그렇게 준다) 일치하는 노드를 못 찾아
+  전체 길이를 반환한다. 특히 첫 단서가 하이라이트 span으로 바뀐 뒤 그 뒤에서 시작하는 선택은
+  `(fp-body, 1)` 같은 요소 경계가 되며, 이 때문에 **한 게시글의 두 번째 단서가 영영 안 잡혔다.**
+  `smoke-test.mjs`의 "선택 경계 형태" 그룹이 8가지 경계 조합을 검사한다.
+- 여러 게시글에 걸친 선택은 무시한다(`bodies.length !== 1`) — 전체 선택 치트 방지.
+- **선택과 겹치는 활성 단서는 전부 수집한다.** 하나만 잡고 끝내지 말 것 —
+  단서 2개를 한 번에 드래그하면 둘 다 수집되어야 한다.
+- `CLUE_SELECTION_SLACK`(state.js, 기본 40)은 **'단서가 아닌 부분'의 허용 길이**다.
+  `선택 길이 − 겹친 단서 길이 합 > SLACK`이면 과대선택으로 보고 거부한다.
+  선택 길이를 단서 *하나*와 비교하면 안 된다 — 해시태그가 함께 잡히거나
+  단서를 여러 개 걸치는 순간 전부 거부되어 "수집이 안 된다"가 된다. (v1.4.0에서 고친 문제)
+  이 규칙이면 짧은 게시글은 캡션 전체를 긁어도 통과한다. 의도된 완화다.
+  막는 대상은 (a) 긴 본문을 통째로 긁기, (b) 여러 게시글에 걸친 선택 두 가지다.
+- 과대선택으로 거부할 때는 `noteHint()`로 기획자 뷰에 이유를 띄운다.
+  조용히 실패하면 원인을 찾을 수 없다.
+- `App.pvGoTag()`는 선택이 남아 있으면 무시한다. 본문을 드래그하다 해시태그 위에서
+  손을 떼면 브라우저가 click도 쏘는데, 그때 태그 페이지로 튀면
+  단서를 수집하고도 화면이 바뀌어 실패로 보인다.
 
 ### 3-3. 키보드 단축키 (keyboard.js)
 - **`event.code`로 판정한다.** `event.key`를 쓰면 한글 IME가 켜져 있을 때 'ㅁ'/'ㅇ'가 들어와
@@ -177,4 +244,5 @@ InstoryPlanner/
 .\scripts\server.ps1          # http://localhost:3000
 ```
 
-`file://`로 직접 열어도 `FALLBACK_DATA`로 동작하지만, JSON 수정이 반영되지 않는다.
+`file://`로 직접 열면 `data/default-data.js`(폴백)가 쓰인다.
+JSON을 고친 뒤 `node scripts/sync-fallback.mjs`를 돌리지 않으면 폴백이 옛 데이터로 남는다.

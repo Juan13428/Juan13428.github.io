@@ -1,6 +1,6 @@
 /* ══════════════════════════════════════════════
    Instory Planner — io.js
-   버전: 1.2.0
+   버전: 1.5.0
    JSON 저장·불러오기 / 엑셀(XLSX) 내보내기
    ══════════════════════════════════════════════ */
 
@@ -82,7 +82,7 @@ function exportXlsx() {
     단서여부: p.isClue ? "Y" : "",
     연결이벤트: p.isClue ? p.clueEvent : "",
     단서메모: p.isClue ? p.clueNote : "",
-    단서문구: (p.clues || []).map(c => c.phrase).join(" | "),
+    단서문구: clueHosts(p).flatMap(h => h.clues.map(c => c.phrase)).join(" | "),
     홉: (p.id in hops) ? hops[p.id] : "도달불가",
     시작게시글: (p.id === S.startPostId) ? "★" : "",
   }))), "게시글");
@@ -112,7 +112,7 @@ function exportXlsx() {
       작성자: (profById(c.post.authorId) || {}).name || "",
       홉: (c.post.id in hops) ? hops[c.post.id] : "도달불가",
       소속목표: owner ? owner.title : "(미배정)",
-      본문일치: (c.post.content || "").indexOf(c.phrase) !== -1 ? "Y" : "N",
+      원문일치: (c.host.text || "").indexOf(c.phrase) !== -1 ? "Y" : "N",
     };
   });
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
@@ -127,6 +127,7 @@ function exportXlsx() {
     댓글작성자: c.author,
     내용: c.text,
     좋아요: c.likes,
+    단서수: (c.clues || []).length,
   })));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
     commentRows.length ? commentRows : [{ 게시글ID: "", 댓글작성자: "", 내용: "", 좋아요: "" }]

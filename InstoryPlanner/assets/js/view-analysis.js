@@ -1,6 +1,6 @@
 /* ══════════════════════════════════════════════
    Instory Planner — view-analysis.js
-   버전: 1.2.0
+   버전: 1.5.0
    경로 분석 탭 — 홉 맵 · 이벤트 커버리지 · 태그 그래프 · 검증 경고
    ══════════════════════════════════════════════ */
 
@@ -14,14 +14,36 @@ function collectWarnings(hops, tm) {
     msg: `단서 게시글 「${esc((p.content || p.id).slice(0, 20))}…」(${esc(p.clueEvent)})이 시작점에서 도달 불가합니다. 해시태그 연결을 추가하세요.`,
   }));
 
-  /* 본문에 존재하지 않는 단서 문구 (드래그로 찾을 수 없는 상태) */
-  S.posts.forEach(p => (p.clues || []).forEach(c => {
-    if (!c.phrase) return;
-    if ((p.content || "").indexOf(c.phrase) === -1) warnings.push({
-      lv: "err",
-      msg: `단서 문구 「${esc(c.phrase.slice(0, 20))}」가 게시글 「${esc((p.content || p.id).slice(0, 14))}…」 본문에 없습니다. 드래그로 찾을 수 없습니다.`,
+  /* 단서 문구 검증: 비어 있음 / 원문에 없음 / 같은 위치 내 중복
+     본문과 댓글을 같은 규칙으로 검사한다. */
+  S.posts.forEach(p => {
+    clueHosts(p).forEach(host => {
+      const seen = new Map();
+      const label = host.kind === "comment" ? `댓글 @${host.comment.author || "?"}` : "본문";
+      const where = `「${esc((p.content || p.id).slice(0, 14))}…」의 ${label}`;
+
+      host.clues.forEach(c => {
+        if (!c.phrase || !c.phrase.trim()) {
+          warnings.push({ lv: "err", msg: `${where}에 문구가 비어 있는 단서가 있습니다. 드래그로 찾을 수 없습니다.` });
+          return;
+        }
+        if ((host.text || "").indexOf(c.phrase) === -1) {
+          warnings.push({
+            lv: "err",
+            msg: `단서 문구 「${esc(c.phrase.slice(0, 20))}」가 ${where}에 없습니다. 드래그로 찾을 수 없습니다.`,
+          });
+          return;
+        }
+        if (seen.has(c.phrase)) {
+          warnings.push({
+            lv: "err",
+            msg: `${where}에 「${esc(c.phrase.slice(0, 20))}」 단서가 중복 등록되어 있습니다. 같은 위치를 가리키므로 하나만 찾힙니다.`,
+          });
+        }
+        seen.set(c.phrase, c.id);
+      });
     });
-  }));
+  });
 
   /* 목표에 배정되지 않은 단서 — 플레이 중 영영 잠긴다 */
   allClues().filter(c => !objectiveOfClue(c.id)).forEach(c => warnings.push({
@@ -72,8 +94,32 @@ function renderAnalysis() {
   const unreachable = S.posts.filter(p => !(p.id in hops));
   const warnings = collectWarnings(hops, tm);
 
-  /* ── 시작 게시글 선택 ── */
+  /* ── 총괄 지표 ── */
+  const clues = allClues();
+  const reachable = S.posts.filter(p => p.id in hops).length;
+  const hopList = Object.values(hops);
+  const avgHop = hopList.length ? (hopList.reduce((a, b) => a + b, 0) / hopList.length).toFixed(1) : "—";
+  const errCount = warnings.filter(w => w.lv === "err").length;
+  const warnCount = warnings.length - errCount;
+
+  const stat = (label, value, tone) =>
+    `<div class="stat ${tone || ""}"><span class="stat-value">${value}</span><span class="stat-label">${label}</span></div>`;
+
   let h = `<div class="card">
+    <div class="stat-grid">
+      ${stat("게시글", S.posts.length)}
+      ${stat("등장인물", S.profiles.length)}
+      ${stat("해시태그", Object.keys(tm).length)}
+      ${stat("단서", clues.length)}
+      ${stat("목표", S.objectives.length, S.objectives.length ? "" : "bad")}
+      ${stat("도달 가능", `${reachable}/${S.posts.length}`, reachable === S.posts.length ? "good" : "bad")}
+      ${stat("평균 홉", avgHop)}
+      ${stat("오류", errCount, errCount ? "bad" : "good")}
+      ${stat("주의", warnCount, warnCount ? "warn" : "good")}
+    </div>
+  </div>
+
+  <div class="card">
     <div class="row" style="align-items:center">
       <h2 style="margin:0">시작 게시글</h2>
       <select class="w-320" onchange="App.setStart(this.value)">
@@ -144,7 +190,8 @@ function renderAnalysis() {
           <span class="muted fs-12">단서 ${list.length}개</span>
         </div>
         ${list.map(p => {
-          const phraseInfo = (p.clues || []).length ? " · 단서 " + p.clues.length : "";
+          const n = clueHosts(p).reduce((a, h) => a + h.clues.length, 0);
+          const phraseInfo = n ? " · 단서 " + n : "";
           return `<div class="fs-12" style="margin-bottom:3px">· ${esc(p.clueNote || (p.content || "").slice(0, 20))}
             <span class="mono muted">(hop ${(p.id in hops) ? hops[p.id] : "×"}${phraseInfo})</span></div>`;
         }).join("")}

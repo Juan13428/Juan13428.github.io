@@ -1,6 +1,6 @@
 /* ══════════════════════════════════════════════
    Instory Planner — style.css
-   버전: 1.2.0
+   버전: 1.5.0
    사후관리 AI · SNS 피드 기획 툴
    ══════════════════════════════════════════════ */
 
@@ -68,6 +68,13 @@ header {
   color: transparent;
 }
 .logo-sub { font-size: 12px; color: var(--muted); }
+.ver {
+  font-size: 10px;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 1px 7px;
+}
 
 nav { display: flex; gap: 4px; flex-wrap: wrap; }
 nav button {
@@ -384,7 +391,7 @@ label.inline.pad { padding-bottom: 8px; }
 
 .fp-caption { padding: 3px 12px 0; font-size: 13px; line-height: 1.55; white-space: pre-wrap; }
 .fp-caption b { margin-right: 6px; user-select: none; }
-.fp-body { cursor: text; }
+.clue-text { cursor: text; }
 
 .fp-tags { padding: 4px 12px 0; display: flex; gap: 8px; flex-wrap: wrap; }
 .fp-tag { color: var(--link); font-size: 13px; cursor: pointer; font-weight: 500; }
@@ -486,6 +493,38 @@ label.inline.pad { padding-bottom: 8px; }
 .hud-count { font-size: 11px; color: var(--muted); margin-left: auto; }
 .hud-next { padding: 3px 9px; font-size: 11px; }
 
+/* ── 댓글 단서 · 작성자 링크 ── */
+.fp-cmt-author { cursor: pointer; }
+.fp-cmt-author:hover { color: var(--link); text-decoration: underline; }
+.cmt-clue-badge {
+  margin-left: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--red-dim);
+  color: var(--red);
+  font-family: ui-monospace, monospace;
+}
+.cmt-hint { color: var(--red); font-weight: 700; }
+.cmt-clues {
+  margin: 2px 0 8px 0;
+  padding: 6px 8px;
+  border-left: 2px solid var(--red-line);
+  background: var(--bg);
+  border-radius: 0 8px 8px 0;
+}
+
+/* 판정 실패 안내 (기획자 뷰 전용) */
+.hint-bar {
+  padding: 7px 14px;
+  background: var(--amber-dim);
+  border-bottom: 1px solid var(--amber-line);
+  color: var(--amber);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
 /* 활성 목표 단서를 품은 게시글 표식 (기획자 뷰) */
 .live-badge {
   font-size: 10px;
@@ -547,6 +586,7 @@ label.inline.pad { padding-bottom: 8px; }
 /* 게시글 탭의 단서 편집 행 */
 .clue-row { display: flex; gap: 8px; align-items: center; margin-top: 6px; flex-wrap: wrap; }
 .clue-row input.bad { border-color: var(--red); background: var(--red-dim); }
+.clue-flag { padding: 3px 0 0 2px; }
 
 /* ── 분석 탭: 목표별 난이도 ── */
 .obj-diff {
@@ -611,7 +651,70 @@ kbd {
 /* 이동 기록: 앞으로 갈 수 있는 화면 */
 .history-list .ahead { color: var(--muted); opacity: .55; }
 
+
+/* ── 분석 요약 통계 ── */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 8px;
+}
+.stat {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 8px;
+  text-align: center;
+}
+.stat.good { border-color: #b7e4c8; background: #f3fbf6; }
+.stat.bad  { border-color: var(--red-line); background: var(--red-dim); }
+.stat.warn { border-color: var(--amber-line); background: var(--amber-dim); }
+.stat-value {
+  display: block;
+  font-family: ui-monospace, monospace;
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.stat.good .stat-value { color: var(--green); }
+.stat.bad  .stat-value { color: var(--red); }
+.stat.warn .stat-value { color: var(--amber); }
+.stat-label { display: block; font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+/* ── 접근성: 키보드 포커스 ── */
+:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn:disabled:hover { filter: none; }
+
+/* 스크린리더 전용 텍스트 */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── 모션 최소화 설정 존중 ── */
+@media (prefers-reduced-motion: reduce) {
+  .clue-highlight.sweep { animation: none; background-size: 100% 55%; }
+  * { scroll-behavior: auto !important; }
+}
+
 /* ── 반응형 ── */
+@media (max-width: 900px) {
+  .header-right { width: 100%; justify-content: flex-end; }
+}
+
 @media (max-width: 520px) {
   .side { width: 100%; }
+  .phone { border-radius: 18px; }
+  .phone-feed { max-height: none; }
+  main { padding: 14px 10px 40px; }
+  .logo-sub { display: none; }
 }

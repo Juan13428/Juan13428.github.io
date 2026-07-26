@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!-- ══════════════════════════════════════════════
      Instory Planner — index.html
-     버전: 1.2.0
+     버전: 1.5.0
      사후관리 AI · SNS 피드 기획 툴 (마크업 전용)
      ══════════════════════════════════════════════ -->
 <html lang="ko">
@@ -11,6 +11,7 @@
   <title>Instory Planner — 사후관리 AI SNS 기획 툴</title>
 
   <link rel="stylesheet" href="assets/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230095f6'/%3E%3Ccircle cx='16' cy='16' r='7' fill='none' stroke='white' stroke-width='2.5'/%3E%3Ccircle cx='23' cy='9' r='2' fill='white'/%3E%3C/svg%3E">
   <!-- 외부 의존성: 엑셀 내보내기용 SheetJS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
@@ -22,9 +23,10 @@
     <div class="brand">
       <span class="logo script">Instory Planner</span>
       <span class="logo-sub">사후관리 AI · SNS 피드 기획 툴</span>
+      <span class="ver mono" id="appVersion"></span>
     </div>
 
-    <nav id="nav"><!-- 탭 버튼은 app.js render()가 생성 --></nav>
+    <nav id="nav" role="tablist" aria-label="작업 화면"><!-- 탭 버튼은 app.js render()가 생성 --></nav>
 
     <div class="header-right">
       <span id="saveState">로딩 중…</span>
@@ -36,9 +38,12 @@
   </header>
 
   <!-- ── 본문 (탭별 화면이 여기에 렌더링됨) ── -->
-  <main id="main"></main>
+  <main id="main" role="tabpanel"></main>
 
   <!-- ── 스크립트 (로드 순서 유지) ── -->
+  <!-- 기본 데이터 폴백 (file:// 실행용). data/default-data.json에서 자동 생성됨 -->
+  <script src="data/default-data.js"></script>
+
   <script src="assets/js/state.js"></script>
   <script src="assets/js/clue-highlight.js"></script>
   <script src="assets/js/view-profiles.js"></script>

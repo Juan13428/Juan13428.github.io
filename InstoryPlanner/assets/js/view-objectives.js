@@ -1,6 +1,6 @@
 /* ══════════════════════════════════════════════
    Instory Planner — view-objectives.js
-   버전: 1.2.0
+   버전: 1.5.0
    목표 탭 — 단서 찾기 목표 작성 · 필요 단서 지정
 
    규칙: 한 단서는 최대 하나의 목표에만 속한다.
@@ -41,18 +41,19 @@ function renderObjectives() {
 
     const ownedRows = owned.length ? owned.map(c => {
       const hop = (c.post.id in hops) ? hops[c.post.id] : null;
-      const missing = (c.post.content || "").indexOf(c.phrase) === -1;
+      const missing = (c.host.text || "").indexOf(c.phrase) === -1;
       return `<div class="clue-pick owned">
-        <span class="clue-phrase ${missing ? "err" : ""}">"${esc(c.phrase)}"${missing ? " ⛔ 본문에 없음" : ""}</span>
-        <span class="muted fs-12">${esc((profById(c.post.authorId) || {}).name || "?")}</span>
+        <span class="clue-phrase ${missing ? "err" : ""}">"${esc(c.phrase)}"${missing ? " ⛔ 원문에 없음" : ""}</span>
+        <span class="muted fs-12">${esc((profById(c.post.authorId) || {}).name || "?")} · ${esc(clueLocation(c))}</span>
         <span class="mono fs-11 ${hop === null ? "warn" : ""}">${hop === null ? "도달불가" : "hop " + hop}</span>
-        <button class="btn sm red" onclick="App.unassignClue('${obj.id}','${c.id}')">해제</button>
+        <button class="btn sm red" onclick="App.unassignClue('${escJs(obj.id)}','${escJs(c.id)}')">해제</button>
       </div>`;
     }).join("") : `<div class="muted fs-12" style="padding:6px 0">배정된 단서가 없습니다.</div>`;
 
     /* 배정 가능한 단서 (미배정분만) */
     const options = unassigned.map(c =>
-      `<option value="${c.id}">${esc((profById(c.post.authorId) || {}).name || "?")} · "${esc(c.phrase.slice(0, 28))}"</option>`
+      `<option value="${c.id}">${esc((profById(c.post.authorId) || {}).name || "?")}` +
+      ` · ${esc(clueLocation(c))} · "${esc(c.phrase.slice(0, 24))}"</option>`
     ).join("");
 
     return `<div class="card obj-card ${isDefault ? "default" : ""}">
@@ -60,9 +61,9 @@ function renderObjectives() {
       <div class="row">
         <label class="field grow"><span>목표 ${i + 1} 제목</span>
           <input value="${esc(obj.title)}" placeholder="예) 지훈의 마지막 하루를 재구성하라"
-            onchange="App.updObjective('${obj.id}','title',this.value)"></label>
+            onchange="App.updObjective('${escJs(obj.id)}','title',this.value)"></label>
         <label class="field"><span>연결 대화 이벤트</span>
-          <select class="w-100" onchange="App.updObjective('${obj.id}','event',this.value)">
+          <select class="w-100" onchange="App.updObjective('${escJs(obj.id)}','event',this.value)">
             ${C_EVENTS.map(c => `<option ${obj.event === c ? "selected" : ""}>${c}</option>`).join("")}
           </select></label>
         <label class="field"><span>필요 단서</span>
@@ -73,13 +74,13 @@ function renderObjectives() {
 
       <label class="field" style="margin-top:10px"><span>목표 설명 (플레이어에게 보이는 안내문)</span>
         <input value="${esc(obj.desc)}" placeholder="이 목표에서 무엇을 알아내야 하는가"
-          onchange="App.updObjective('${obj.id}','desc',this.value)"></label>
+          onchange="App.updObjective('${escJs(obj.id)}','desc',this.value)"></label>
 
       <div class="obj-clues">
         <div class="comment-head">
           <span class="muted fs-11" style="letter-spacing:.04em">클리어에 필요한 단서</span>
           ${options
-            ? `<select class="w-320" onchange="App.assignClue('${obj.id}',this.value); this.value=''">
+            ? `<select class="w-320" onchange="App.assignClue('${escJs(obj.id)}',this.value); this.value=''">
                  <option value="">+ 단서 배정…</option>${options}
                </select>`
             : `<span class="muted fs-11">배정 가능한 미배정 단서 없음</span>`}
@@ -91,11 +92,11 @@ function renderObjectives() {
         <span class="mono muted fs-11 push">${esc(obj.id)}</span>
         <label class="inline">
           <input type="radio" name="defaultObjective" ${isDefault ? "checked" : ""}
-            onchange="App.setDefaultObjective('${obj.id}')">
+            onchange="App.setDefaultObjective('${escJs(obj.id)}')">
           <span style="color:${isDefault ? "var(--amber)" : "var(--muted)"}">시작 목표</span></label>
-        <button class="btn sm" onclick="App.moveObjective('${obj.id}',-1)" ${i === 0 ? "disabled" : ""}>↑</button>
-        <button class="btn sm" onclick="App.moveObjective('${obj.id}',1)" ${i === S.objectives.length - 1 ? "disabled" : ""}>↓</button>
-        <button class="btn sm red" onclick="App.delObjective('${obj.id}')">삭제</button>
+        <button class="btn sm" onclick="App.moveObjective('${escJs(obj.id)}',-1)" ${i === 0 ? "disabled" : ""} aria-label="목표 순서 위로" title="위로">↑</button>
+        <button class="btn sm" onclick="App.moveObjective('${escJs(obj.id)}',1)" ${i === S.objectives.length - 1 ? "disabled" : ""} aria-label="목표 순서 아래로" title="아래로">↓</button>
+        <button class="btn sm red" onclick="App.delObjective('${escJs(obj.id)}')">삭제</button>
       </div>
 
     </div>`;
@@ -111,7 +112,7 @@ function renderObjectives() {
       const hop = (c.post.id in hops) ? hops[c.post.id] : null;
       return `<div class="clue-pick">
         <span class="clue-phrase">"${esc(c.phrase)}"</span>
-        <span class="muted fs-12">${esc((profById(c.post.authorId) || {}).name || "?")}</span>
+        <span class="muted fs-12">${esc((profById(c.post.authorId) || {}).name || "?")} · ${esc(clueLocation(c))}</span>
         <span class="mono fs-11 ${hop === null ? "warn" : ""}">${hop === null ? "도달불가" : "hop " + hop}</span>
       </div>`;
     }).join("") : '<div class="ok fs-13">✓ 모든 단서가 목표에 배정되었습니다.</div>'}

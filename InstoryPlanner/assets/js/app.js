@@ -1,6 +1,6 @@
 /* ══════════════════════════════════════════════
    Instory Planner — app.js
-   버전: 1.2.0
+   버전: 1.5.0
    진입점 — App 액션 객체 · 렌더 루프 · 초기화
 
    로드 순서 (index.html):
@@ -42,7 +42,8 @@ function render() {
     ["analysis", "경로 분석"],
     ["preview", "플레이 미리보기"],
   ].map(([key, label]) =>
-    `<button class="${U.tab === key ? "active" : ""}" onclick="App.setTab('${key}')">${label}</button>`
+    `<button class="${U.tab === key ? "active" : ""}" role="tab" aria-selected="${U.tab === key}"
+       onclick="App.setTab('${key}')">${label}</button>`
   ).join("");
 
   /* 본문 */
@@ -137,8 +138,11 @@ const App = {
     if (!p) return;
     const copy = JSON.parse(JSON.stringify(p));
     copy.id = "post_" + uid();
-    copy.comments = (copy.comments || []).map(c => ({ ...c, id: "c_" + uid() }));
     /* 단서는 새 id를 받으므로 목표 배정은 따라오지 않는다 (목표 탭에서 재배정) */
+    copy.comments = (copy.comments || []).map(c => ({
+      ...c, id: "c_" + uid(),
+      clues: (c.clues || []).map(x => ({ ...x, id: "clue_" + uid() })),
+    }));
     copy.clues = (copy.clues || []).map(c => ({ ...c, id: "clue_" + uid() }));
     S.posts.unshift(copy);
     U.openId = copy.id;
@@ -164,7 +168,7 @@ const App = {
   addComment(postId) {
     const p = postById(postId);
     if (!p) return;
-    (p.comments = p.comments || []).push({ id: "c_" + uid(), author: "", text: "", likes: 0 });
+    (p.comments = p.comments || []).push({ id: "c_" + uid(), author: "", text: "", likes: 0, clues: [] });
     render();
   },
 
@@ -181,31 +185,35 @@ const App = {
     const p = postById(postId);
     if (!p) return;
     p.comments = (p.comments || []).filter(x => x.id !== cid);
+    pruneClueRefs();
     render();
   },
 
 
   /* ── 단서 (게시글 소속) ── */
-  addClue(postId) {
-    const p = postById(postId);
-    if (!p) return;
-    (p.clues = p.clues || []).push({ id: "clue_" + uid(), phrase: "", note: "" });
+  /* commentId가 빈 문자열이면 게시글 본문, 아니면 해당 댓글에 단서를 단다 */
+  addClue(postId, commentId) {
+    const host = hostOf(postId, commentId);
+    if (!host) return;
+    const owner = host.kind === "comment" ? host.comment : host.post;
+    (owner.clues = owner.clues || []).push({ id: "clue_" + uid(), phrase: "", note: "" });
     render();
   },
 
-  updClue(postId, clueId, key, val) {
-    const p = postById(postId);
-    if (!p) return;
-    const c = (p.clues || []).find(x => x.id === clueId);
+  updClue(postId, commentId, clueId, key, val) {
+    const host = hostOf(postId, commentId);
+    if (!host) return;
+    const c = host.clues.find(x => x.id === clueId);
     if (!c) return;
     c[key] = val;
     render();
   },
 
-  delClue(postId, clueId) {
-    const p = postById(postId);
-    if (!p) return;
-    p.clues = (p.clues || []).filter(x => x.id !== clueId);
+  delClue(postId, commentId, clueId) {
+    const host = hostOf(postId, commentId);
+    if (!host) return;
+    const owner = host.kind === "comment" ? host.comment : host.post;
+    owner.clues = (owner.clues || []).filter(x => x.id !== clueId);
     pruneClueRefs();
     render();
   },
@@ -306,6 +314,12 @@ const App = {
   },
 
   pvGoTag(tag) {
+    /* 본문을 드래그하다 해시태그 위에서 손을 떼면 브라우저가 click도 쏜다.
+       그때 태그 페이지로 튀어버리면 단서를 수집하고도 화면이 바뀌어
+       "수집이 안 된다"로 보인다. 선택이 남아 있으면 클릭이 아니라 드래그로 본다. */
+    const sel = window.getSelection();
+    if (sel && sel.rangeCount && !sel.getRangeAt(0).collapsed) return;
+
     if (P.view.mode === "tag" && P.view.tag === tag) return;
     P.visited[tag] = true;      // 방문한 태그는 회색 처리
     App.pvGo({ mode: "tag", tag }, true);
@@ -366,7 +380,9 @@ const App = {
 
 /* ── 초기화 ── */
 (async function init() {
+  const badge = document.getElementById("appVersion");
+  if (badge) badge.textContent = "v" + APP_VERSION;
   await loadDefaultData();
   render();
-  setStatus("v" + APP_VERSION + " · 기본 데이터 로드됨");
+  setStatus("기본 데이터 로드됨");
 })();
