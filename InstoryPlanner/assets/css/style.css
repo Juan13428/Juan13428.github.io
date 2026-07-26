@@ -1,6 +1,6 @@
 /* ══════════════════════════════════════════════
    Instory Planner — style.css
-   버전: 1.0.0
+   버전: 1.2.0
    사후관리 AI · SNS 피드 기획 툴
    ══════════════════════════════════════════════ */
 
@@ -440,6 +440,176 @@ label.inline.pad { padding-bottom: 8px; }
   from { background-size: 0% 55%; }
   to   { background-size: 100% 55%; }
 }
+
+
+/* ── 목표 HUD (플레이 미리보기 상단 고정) ── */
+.hud {
+  padding: 11px 14px 12px;
+  background: linear-gradient(180deg, #f7fbff 0%, #ffffff 100%);
+  border-bottom: 1px solid var(--border);
+  border-left: 3px solid var(--blue);
+}
+.hud.done { border-left-color: var(--green); background: linear-gradient(180deg, #f4fbf6 0%, #fff 100%); }
+.hud.empty { border-left-color: var(--amber); background: var(--amber-dim); }
+
+.hud-label {
+  font-size: 10px;
+  letter-spacing: .08em;
+  color: var(--muted);
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.hud-ev {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--blue-dim);
+  color: var(--blue);
+  font-weight: 700;
+  letter-spacing: 0;
+}
+.hud-title { font-size: 14px; font-weight: 700; margin-top: 3px; line-height: 1.35; }
+.hud.done .hud-title { color: var(--green); }
+.hud-sub { font-size: 11.5px; color: var(--muted); margin-top: 3px; line-height: 1.45; }
+
+.hud-bar { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.hud-dots { display: flex; gap: 5px; }
+.hud-dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: transparent;
+  border: 1.5px solid #c7ccd1;
+}
+.hud-dot.on { background: var(--red); border-color: var(--red); }
+.hud-count { font-size: 11px; color: var(--muted); margin-left: auto; }
+.hud-next { padding: 3px 9px; font-size: 11px; }
+
+/* 활성 목표 단서를 품은 게시글 표식 (기획자 뷰) */
+.live-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--blue);
+  color: #fff;
+  margin-right: 4px;
+  display: inline-block;
+}
+
+/* ── 사이드 패널: 목표 진행 목록 ── */
+.obj-prog-list { display: flex; flex-direction: column; gap: 4px; }
+.obj-prog {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  background: var(--bg);
+}
+.obj-prog:hover { border-color: var(--border); }
+.obj-prog-mark { flex-shrink: 0; font-size: 11px; }
+.obj-prog-title {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.obj-prog.active { background: var(--blue-dim); border-color: var(--blue); font-weight: 700; }
+.obj-prog.done { color: var(--green); }
+.obj-prog.locked { color: var(--muted); }
+
+/* ── 목표 탭 ── */
+.obj-card { border-left: 3px solid var(--border); }
+.obj-card.default { border-left-color: var(--amber); }
+.obj-clues {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.clue-pick {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--bg);
+  margin-top: 5px;
+  flex-wrap: wrap;
+}
+.clue-pick.owned { background: var(--red-dim); }
+.clue-phrase { flex: 1; font-size: 13px; min-width: 160px; }
+
+/* 게시글 탭의 단서 편집 행 */
+.clue-row { display: flex; gap: 8px; align-items: center; margin-top: 6px; flex-wrap: wrap; }
+.clue-row input.bad { border-color: var(--red); background: var(--red-dim); }
+
+/* ── 분석 탭: 목표별 난이도 ── */
+.obj-diff {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: var(--bg);
+  margin-bottom: 5px;
+  flex-wrap: wrap;
+}
+.obj-diff.bad { background: var(--red-dim); }
+.obj-diff-idx {
+  width: 22px; height: 22px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--blue-dim);
+  color: var(--blue);
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.obj-diff-title { flex: 1; font-size: 13px; font-weight: 600; min-width: 140px; }
+
+
+/* ── 폰 상단 네비게이션 (뒤로/앞으로) ── */
+.phone-nav { display: inline-flex; gap: 2px; margin-right: 2px; }
+.phone-nav .back-btn { padding: 0 4px; }
+.phone-nav .back-btn:hover { color: var(--blue); }
+
+/* ── 키보드 단축키 안내 ── */
+.key-help { display: flex; flex-direction: column; gap: 6px; }
+.key-help > div { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.key-help span { flex: 1; }
+.key-help em {
+  font-style: normal;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--blue);
+}
+.key-help em.off { color: var(--muted); opacity: .5; }
+kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: #fff;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+/* 이동 기록: 앞으로 갈 수 있는 화면 */
+.history-list .ahead { color: var(--muted); opacity: .55; }
 
 /* ── 반응형 ── */
 @media (max-width: 520px) {

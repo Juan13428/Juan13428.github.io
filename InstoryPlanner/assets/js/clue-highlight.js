@@ -1,21 +1,27 @@
 /* ══════════════════════════════════════════════
    Instory Planner — clue-highlight.js
-   버전: 1.0.0
+   버전: 1.2.0
    본문 드래그 단서 판정 · 형광펜 하이라이트 · 인라인 해시태그 렌더
-   (참고 원본: archive/text-highlight-prototype.html)
+
+   판정 규칙
+   - 단서는 **활성 목표에 속할 때만** 드래그로 찾을 수 있다 (isClueUnlocked).
+   - 선택 영역이 단서 문구와 1글자 이상 겹치면 정답.
+   - 빈 클릭 / 본문 밖 드래그 / 이미 찾은 단서 / 잠긴 단서는 무반응.
+
+   참고 원본: archive/text-highlight-prototype.html
    ══════════════════════════════════════════════ */
 
 /* ── 본문 세그먼트 계산 ──
-   발견된 단서 문구와 인라인 #태그의 위치를 겹치지 않게 정리해 반환한다. */
-function buildMarks(post, foundSet) {
+   발견된 단서와 인라인 #태그의 위치를 겹치지 않게 정리해 반환한다. */
+function buildMarks(post) {
   const text = post.content || "";
   const marks = [];
 
-  (post.cluePhrases || []).forEach((phrase, i) => {
-    if (!foundSet.has(i)) return;
-    const start = text.indexOf(phrase);
-    if (start === -1) return;                       // 본문에서 사라진 문구는 무시
-    marks.push({ start, end: start + phrase.length, type: "clue", idx: i });
+  (post.clues || []).forEach(clue => {
+    if (!P.foundClues.has(clue.id)) return;          // 아직 못 찾은 단서는 표시하지 않음
+    const start = text.indexOf(clue.phrase);
+    if (start === -1) return;                        // 본문에서 사라진 문구는 무시
+    marks.push({ start, end: start + clue.phrase.length, type: "clue", id: clue.id });
   });
 
   let m;
@@ -43,16 +49,15 @@ function tagSpan(tag) {
 /* ── 게시글 본문 HTML ── */
 function captionHtml(post) {
   const text = post.content || "";
-  const found = P.foundClues[post.id] || new Set();
-  const just = (P._justFound && P._justFound.postId === post.id) ? P._justFound.ids : new Set();
-  const marks = buildMarks(post, found);
+  const just = (P._justFound && P._justFound.ids) || new Set();
+  const marks = buildMarks(post);
 
   let html = "";
   let cur = 0;
   marks.forEach(mk => {
     if (mk.start > cur) html += esc(text.slice(cur, mk.start));
     if (mk.type === "clue") {
-      const anim = just.has(mk.idx) ? "sweep" : "static";
+      const anim = just.has(mk.id) ? "sweep" : "static";
       html += `<span class="clue-highlight ${anim}">${esc(text.slice(mk.start, mk.end))}</span>`;
     } else {
       html += tagSpan(mk.tag);
@@ -91,9 +96,7 @@ function getCharOffset(root, node, nodeOffset) {
   return count;
 }
 
-/* ── 드래그 종료 시 단서 판정 ──
-   판정 규칙: 선택 영역이 단서 문구와 1글자 이상 겹치면 정답.
-   빈 클릭·본문 밖 드래그·이미 찾은 단서는 판정하지 않는다. 오답은 무반응. */
+/* ── 드래그 종료 시 단서 판정 ── */
 function handleClueSelection() {
   const sel = window.getSelection();
   if (!sel || sel.rangeCount === 0) return;
@@ -107,7 +110,7 @@ function handleClueSelection() {
   if (!bodyEl) return;
 
   const post = postById(bodyEl.dataset.post);
-  if (!post || !(post.cluePhrases || []).length) return;
+  if (!post || !(post.clues || []).length) return;
 
   const rawStart = getCharOffset(bodyEl, range.startContainer, range.startOffset);
   const rawEnd = getCharOffset(bodyEl, range.endContainer, range.endOffset);
@@ -115,21 +118,40 @@ function handleClueSelection() {
   const selEnd = Math.max(rawStart, rawEnd);
 
   const text = post.content || "";
-  const found = P.foundClues[post.id] = P.foundClues[post.id] || new Set();
   const just = new Set();
 
-  (post.cluePhrases || []).forEach((phrase, i) => {
-    if (found.has(i)) return;
-    const start = text.indexOf(phrase);
+  (post.clues || []).forEach(clue => {
+    if (P.foundClues.has(clue.id)) return;      // 이미 찾음
+    if (!isClueUnlocked(clue.id)) return;       // 활성 목표에 속하지 않으면 잠김
+    const start = text.indexOf(clue.phrase);
     if (start === -1) return;
-    if (selStart < start + phrase.length && selEnd > start) { found.add(i); just.add(i); }
+    if (selStart < start + clue.phrase.length && selEnd > start) {
+      P.foundClues.add(clue.id);
+      just.add(clue.id);
+    }
   });
 
-  if (just.size) {
-    sel.removeAllRanges();
-    P._justFound = { postId: post.id, ids: just };
-    render();
-    P._justFound = null;
+  if (!just.size) return;                       // 오답·잠김: 무반응
+
+  sel.removeAllRanges();
+  P._justFound = { ids: just };
+  advanceObjectiveIfCleared();                  // 목표 완료 처리 (자동 진행)
+  render();
+  P._justFound = null;
+}
+
+/* ── 목표 완료 판정 ──
+   활성 목표의 단서를 모두 찾으면 완료 기록. autoAdvance면 다음 미완료 목표로 전환. */
+function advanceObjectiveIfCleared() {
+  const obj = activeObjective();
+  if (!obj) return;
+  if (!objectiveProgress(obj).done) return;
+
+  if (!P.clearedObjectives.includes(obj.id)) P.clearedObjectives.push(obj.id);
+
+  if (P.autoAdvance) {
+    const next = nextOpenObjective(obj.id);
+    P.activeObjectiveId = next ? next.id : "";   // 남은 목표가 없으면 전체 완료
   }
 }
 

@@ -1,6 +1,6 @@
 /* ══════════════════════════════════════════════
    Instory Planner — view-posts.js
-   버전: 1.0.0
+   버전: 1.2.0
    게시글 탭 렌더링 (본문·해시태그·단서·댓글 편집)
    ══════════════════════════════════════════════ */
 
@@ -105,9 +105,29 @@ function renderPosts() {
           </select></label>
         <label class="field grow"><span>단서 메모 (무엇을 알게 되는가)</span>
           <input value="${esc(p.clueNote)}" onchange="App.updPost('${p.id}','clueNote',this.value)"></label>
-        <label class="field full"><span>단서 문구 — 드래그 판정 대상, 본문 속 문장을 줄바꿈으로 구분해 입력</span>
-          <textarea class="short"
-            onchange="App.updPost('${p.id}','cluePhrases',this.value)">${esc((p.cluePhrases || []).join("\n"))}</textarea></label>` : ""}
+        <div class="field full">
+          <div class="comment-head">
+            <span class="muted fs-11" style="letter-spacing:.04em">단서 문구 — 드래그 판정 대상. 본문에 실제로 있는 문장이어야 합니다</span>
+            <button class="btn sm dim" onclick="App.addClue('${p.id}')">+ 단서 추가</button>
+          </div>
+          ${(p.clues || []).map(c => {
+            const owner = objectiveOfClue(c.id);
+            const missing = (p.content || "").indexOf(c.phrase) === -1;
+            return `<div class="clue-row">
+              <input class="grow ${missing ? "bad" : ""}" placeholder="본문 속 단서 문구" value="${esc(c.phrase)}"
+                onchange="App.updClue('${p.id}','${c.id}','phrase',this.value)">
+              <input class="grow" placeholder="이 단서로 무엇을 알게 되는가" value="${esc(c.note)}"
+                onchange="App.updClue('${p.id}','${c.id}','note',this.value)">
+              <select class="w-170" onchange="App.assignClueTo('${c.id}',this.value)">
+                <option value="">— 목표 미배정 —</option>
+                ${S.objectives.map(o =>
+                  `<option value="${o.id}" ${owner && owner.id === o.id ? "selected" : ""}>${esc(o.title.slice(0, 20))}</option>`).join("")}
+              </select>
+              <button class="btn sm red" onclick="App.delClue('${p.id}','${c.id}')">×</button>
+            </div>${missing ? '<div class="err fs-11" style="padding-left:2px">⛔ 이 문구가 본문에 없습니다 — 드래그로 찾을 수 없습니다</div>' : ""}`;
+          }).join("")}
+          ${(p.clues || []).length ? "" : '<div class="muted fs-12" style="padding:6px 0">단서가 없습니다.</div>'}
+        </div>` : ""}
 
         <label class="inline pad">
           <input type="radio" name="startPost" ${p.id === S.startPostId ? "checked" : ""}

@@ -1,12 +1,18 @@
 /* ══════════════════════════════════════════════
    Instory Planner — io.js
-   버전: 1.0.0
+   버전: 1.2.0
    JSON 저장·불러오기 / 엑셀(XLSX) 내보내기
    ══════════════════════════════════════════════ */
 
 /* ── 현재 기획 데이터 스냅샷 ── */
 function currentData() {
-  return { profiles: S.profiles, posts: S.posts, startPostId: S.startPostId };
+  return {
+    profiles: S.profiles,
+    posts: S.posts,
+    objectives: S.objectives,
+    startPostId: S.startPostId,
+    activeObjectiveId: S.activeObjectiveId,
+  };
 }
 
 /* ── JSON 저장 ── */
@@ -76,10 +82,42 @@ function exportXlsx() {
     단서여부: p.isClue ? "Y" : "",
     연결이벤트: p.isClue ? p.clueEvent : "",
     단서메모: p.isClue ? p.clueNote : "",
-    단서문구: (p.cluePhrases || []).join(" | "),
+    단서문구: (p.clues || []).map(c => c.phrase).join(" | "),
     홉: (p.id in hops) ? hops[p.id] : "도달불가",
     시작게시글: (p.id === S.startPostId) ? "★" : "",
   }))), "게시글");
+
+  /* 목표 시트 */
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    S.objectives.length ? S.objectives.map((o, i) => ({
+      순서: i + 1,
+      ID: o.id,
+      제목: o.title,
+      설명: o.desc,
+      대화이벤트: o.event,
+      필요단서수: o.clueIds.length,
+      최대홉: objectiveMaxHop(o, hops) ?? "—",
+      시작목표: (o.id === S.activeObjectiveId) ? "★" : "",
+    })) : [{ 순서: "", ID: "", 제목: "", 설명: "", 대화이벤트: "", 필요단서수: "", 최대홉: "" }]
+  ), "목표");
+
+  /* 단서 시트 */
+  const clueRows = allClues().map(c => {
+    const owner = objectiveOfClue(c.id);
+    return {
+      단서ID: c.id,
+      문구: c.phrase,
+      메모: c.note,
+      게시글ID: c.post.id,
+      작성자: (profById(c.post.authorId) || {}).name || "",
+      홉: (c.post.id in hops) ? hops[c.post.id] : "도달불가",
+      소속목표: owner ? owner.title : "(미배정)",
+      본문일치: (c.post.content || "").indexOf(c.phrase) !== -1 ? "Y" : "N",
+    };
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+    clueRows.length ? clueRows : [{ 단서ID: "", 문구: "", 소속목표: "" }]
+  ), "단서");
 
   /* 댓글 시트 */
   const commentRows = [];

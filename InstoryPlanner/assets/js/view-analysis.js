@@ -1,6 +1,6 @@
 /* ══════════════════════════════════════════════
    Instory Planner — view-analysis.js
-   버전: 1.0.0
+   버전: 1.2.0
    경로 분석 탭 — 홉 맵 · 이벤트 커버리지 · 태그 그래프 · 검증 경고
    ══════════════════════════════════════════════ */
 
@@ -15,12 +15,39 @@ function collectWarnings(hops, tm) {
   }));
 
   /* 본문에 존재하지 않는 단서 문구 (드래그로 찾을 수 없는 상태) */
-  S.posts.forEach(p => (p.cluePhrases || []).forEach(phrase => {
-    if ((p.content || "").indexOf(phrase) === -1) warnings.push({
+  S.posts.forEach(p => (p.clues || []).forEach(c => {
+    if (!c.phrase) return;
+    if ((p.content || "").indexOf(c.phrase) === -1) warnings.push({
       lv: "err",
-      msg: `단서 문구 「${esc(phrase.slice(0, 20))}」가 게시글 「${esc((p.content || p.id).slice(0, 14))}…」 본문에 없습니다. 드래그로 찾을 수 없습니다.`,
+      msg: `단서 문구 「${esc(c.phrase.slice(0, 20))}」가 게시글 「${esc((p.content || p.id).slice(0, 14))}…」 본문에 없습니다. 드래그로 찾을 수 없습니다.`,
     });
   }));
+
+  /* 목표에 배정되지 않은 단서 — 플레이 중 영영 잠긴다 */
+  allClues().filter(c => !objectiveOfClue(c.id)).forEach(c => warnings.push({
+    lv: "err",
+    msg: `단서 「${esc((c.phrase || c.id).slice(0, 20))}」가 어떤 목표에도 배정되지 않았습니다. 활성화될 수 없어 영영 잠깁니다.`,
+  }));
+
+  /* 단서가 없는 목표 — 시작하자마자 완료 처리된다 */
+  S.objectives.filter(o => !o.clueIds.length).forEach(o => warnings.push({
+    lv: "warn",
+    msg: `목표 「${esc(o.title.slice(0, 20))}」에 배정된 단서가 없습니다. 시작 즉시 완료 처리됩니다.`,
+  }));
+
+  /* 목표가 요구하는 단서가 도달 불가한 게시글에 있음 */
+  S.objectives.forEach(o => {
+    if (objectiveMaxHop(o, hops) === "도달불가") warnings.push({
+      lv: "err",
+      msg: `목표 「${esc(o.title.slice(0, 20))}」의 단서 중 시작 게시글에서 도달할 수 없는 것이 있습니다. 클리어 불가능합니다.`,
+    });
+  });
+
+  /* 목표 자체가 없음 */
+  if (!S.objectives.length) warnings.push({
+    lv: "err",
+    msg: "목표가 하나도 없습니다. 모든 단서가 잠긴 상태이므로 플레이가 진행되지 않습니다.",
+  });
 
   /* 이동 경로로 기능하지 못하는 태그 */
   Object.entries(tm).filter(([, ps]) => ps.length === 1).forEach(([t]) => warnings.push({
@@ -85,6 +112,28 @@ function renderAnalysis() {
   }
   h += `<div class="card"><h2>단서 경로 맵</h2>${levels}</div>`;
 
+  /* ── 목표별 탐색 난이도 ── */
+  h += `<div class="card"><h2>목표별 탐색 난이도 (${S.objectives.length})</h2>
+    <div class="muted fs-12" style="margin-bottom:10px">
+      "최대 홉"은 그 목표를 클리어하려면 시작 게시글에서 몇 단계까지 태그를 타고 들어가야 하는지를 뜻합니다.
+      목표 순서대로 홉이 완만하게 증가하는 것이 이상적입니다.
+    </div>
+    ${S.objectives.length ? S.objectives.map((o, i) => {
+      const maxHop = objectiveMaxHop(o, hops);
+      const bad = maxHop === "도달불가";
+      const clues = o.clueIds.map(id => clueById(id)).filter(Boolean);
+      const posts = Array.from(new Set(clues.map(c => c.post.id)));
+      return `<div class="obj-diff ${bad ? "bad" : ""}">
+        <span class="obj-diff-idx mono">${i + 1}</span>
+        <span class="obj-diff-title">${esc(o.title)}</span>
+        <span class="tag">${esc(o.event)}</span>
+        <span class="mono fs-12">단서 ${o.clueIds.length}개</span>
+        <span class="mono fs-12">게시글 ${posts.length}곳</span>
+        <span class="mono fs-12 ${bad ? "err bold" : ""}">최대 ${maxHop === null ? "—" : (bad ? maxHop : "hop " + maxHop)}</span>
+      </div>`;
+    }).join("") : '<div class="warn fs-13">목표가 없습니다. 목표 탭에서 추가하세요.</div>'}
+  </div>`;
+
   /* ── 대화 이벤트별 커버리지 ── */
   h += `<div class="card"><h2>대화 이벤트별 단서 커버리지 (C1–C5)</h2><div class="cov-grid">
     ${C_EVENTS.map(ev => {
@@ -95,7 +144,7 @@ function renderAnalysis() {
           <span class="muted fs-12">단서 ${list.length}개</span>
         </div>
         ${list.map(p => {
-          const phraseInfo = (p.cluePhrases || []).length ? " · 문구 " + p.cluePhrases.length : "";
+          const phraseInfo = (p.clues || []).length ? " · 단서 " + p.clues.length : "";
           return `<div class="fs-12" style="margin-bottom:3px">· ${esc(p.clueNote || (p.content || "").slice(0, 20))}
             <span class="mono muted">(hop ${(p.id in hops) ? hops[p.id] : "×"}${phraseInfo})</span></div>`;
         }).join("")}
