@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<!-- ══════════════════════════════════════════════
+     Instory Planner — index.html
+     버전: 1.0.0
+     사후관리 AI · SNS 피드 기획 툴 (마크업 전용)
+     ══════════════════════════════════════════════ -->
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Instory Planner — 사후관리 AI SNS 기획 툴</title>
+
+  <link rel="stylesheet" href="assets/css/style.css">
+  <!-- 외부 의존성: 엑셀 내보내기용 SheetJS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+
+<body>
+
+  <!-- ── 헤더 ── -->
+  <header>
+    <div class="brand">
+      <span class="logo script">Instory Planner</span>
+      <span class="logo-sub">사후관리 AI · SNS 피드 기획 툴</span>
+    </div>
+
+    <nav id="nav"><!-- 탭 버튼은 app.js render()가 생성 --></nav>
+
+    <div class="header-right">
+      <span id="saveState">로딩 중…</span>
+      <button class="btn sm" onclick="App.exportJson()">JSON 저장</button>
+      <button class="btn sm" onclick="document.getElementById('jsonFile').click()">JSON 불러오기</button>
+      <input type="file" id="jsonFile" accept=".json" hidden onchange="App.importJson(event)">
+      <button class="btn sm blue" onclick="App.exportXlsx()">⬇ 엑셀 내보내기</button>
+    </div>
+  </header>
+
+  <!-- ── 본문 (탭별 화면이 여기에 렌더링됨) ── -->
+  <main id="main"></main>
+
+  <!-- ── 스크립트 (로드 순서 유지) ── -->
+  <script src="assets/js/state.js"></script>
+  <script src="assets/js/clue-highlight.js"></script>
+  <script src="assets/js/view-profiles.js"></script>
+  <script src="assets/js/view-posts.js"></script>
+  <script src="assets/js/view-analysis.js"></script>
+  <script src="assets/js/view-preview.js"></script>
+  <script src="assets/js/io.js"></script>
+  <script src="assets/js/app.js"></script>
+
+</body>
+</html>

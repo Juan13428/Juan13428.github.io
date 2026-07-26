@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>단서 하이라이트 프로토타입</title>
+<style>
+  :root {
+    --ig-border: #dbdbdb;
+    --ig-text: #262626;
+    --ig-subtext: #8e8e8e;
+    --highlight: #fff176;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: #fafafa;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo",
+      "Noto Sans KR", Helvetica, Arial, sans-serif;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 16px;
+    color: var(--ig-text);
+  }
+
+  .phone {
+    width: 400px;
+    max-width: 100%;
+  }
+
+  .post {
+    background: #fff;
+    border: 1px solid var(--ig-border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  /* header */
+  .post-header {
+    display: flex;
+    align-items: center;
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #405de6, #5851db, #833ab4, #c13584, #e1306c, #fd1d1d);
+    padding: 2px;
+    flex-shrink: 0;
+  }
+  .avatar-inner {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: #d8d8d8;
+    border: 2px solid #fff;
+  }
+
+  .post-header .meta { flex: 1; min-width: 0; }
+  .post-header .username {
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 1.2;
+  }
+  .post-header .location {
+    font-size: 12px;
+    color: var(--ig-subtext);
+  }
+  .post-header .more { color: var(--ig-text); font-size: 18px; padding: 4px; }
+
+  /* image */
+  .post-image {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background:
+      radial-gradient(circle at 30% 20%, rgba(255,255,255,0.08), transparent 40%),
+      linear-gradient(160deg, #232733 0%, #2f3546 45%, #1b1e29 100%);
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+  }
+  .post-image::before {
+    content: "🌙";
+    font-size: 46px;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4));
+    opacity: 0.85;
+  }
+
+  /* action icons */
+  .post-actions {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px 0;
+    gap: 14px;
+    font-size: 22px;
+  }
+  .post-actions .spacer { flex: 1; }
+  .post-actions span { cursor: default; line-height: 1; }
+
+  .likes {
+    padding: 8px 14px 0;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  /* caption */
+  .caption-wrap {
+    padding: 6px 14px 4px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .caption-wrap .cap-username {
+    font-weight: 600;
+    margin-right: 6px;
+  }
+  #caption {
+    /* the draggable/selectable body text */
+    cursor: text;
+  }
+
+  .timestamp {
+    padding: 4px 14px 14px;
+    font-size: 11px;
+    letter-spacing: 0.2px;
+    color: var(--ig-subtext);
+    text-transform: uppercase;
+  }
+
+  /* clue highlight */
+  .clue-highlight {
+    background-image: linear-gradient(120deg, var(--highlight) 0%, var(--highlight) 100%);
+    background-repeat: no-repeat;
+    background-position: 0 78%;
+    padding: 1px 1px;
+    border-radius: 2px;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+  }
+  .clue-highlight.static { background-size: 100% 55%; }
+  .clue-highlight.sweep {
+    background-size: 0% 55%;
+    animation: sweepHighlight 0.55s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  }
+  @keyframes sweepHighlight {
+    from { background-size: 0% 55%; }
+    to   { background-size: 100% 55%; }
+  }
+
+  /* completion banner */
+  .complete-banner {
+    margin-top: 14px;
+    padding: 12px 16px;
+    background: #262626;
+    color: #fff;
+    border-radius: 8px;
+    font-size: 13px;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(-6px);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+    pointer-events: none;
+  }
+  .complete-banner.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .hint {
+    margin-top: 10px;
+    font-size: 12px;
+    color: #9a9a9a;
+    text-align: center;
+  }
+
+  .progress {
+    margin-top: 10px;
+    font-size: 12px;
+    color: #9a9a9a;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <div class="post">
+    <div class="post-header">
+      <div class="avatar"><div class="avatar-inner"></div></div>
+      <div class="meta">
+        <div class="username">jiyoon.log</div>
+        <div class="location">Seoul, Korea</div>
+      </div>
+      <div class="more">&#8942;</div>
+    </div>
+
+    <div class="post-image" aria-hidden="true"></div>
+
+    <div class="post-actions">
+      <span>&#9825;</span>
+      <span>&#128172;</span>
+      <span>&#10148;</span>
+      <div class="spacer"></div>
+      <span>&#128278;</span>
+    </div>
+
+    <div class="likes">좋아요 128개</div>
+
+    <div class="caption-wrap">
+      <span class="cap-username">jiyoon.log</span><span id="caption"></span>
+    </div>
+
+    <div class="timestamp">2시간 전</div>
+  </div>
+
+  <div class="complete-banner" id="completeBanner">🔍 단서를 모두 찾았습니다</div>
+  <div class="progress" id="progress"></div>
+  <div class="hint">본문 텍스트를 드래그해서 의심스러운 문장을 찾아보세요.</div>
+</div>
+
+<script>
+(function () {
+  // ---- 4.4 데이터 구조 -------------------------------------------------
+  // 단서 데이터는 이 블록만 교체하면 다른 게시글로 쉽게 바꿀 수 있다.
+  const post = {
+    author: "jiyoon.log",
+    bodyText:
+      "오늘 하루도 완벽했다☀️ 회의도 잘 끝났고 저녁엔 혼자 조용히 파스타 해먹었음. " +
+      "아 참, 어제 그 사람이랑 통화한 건 그냥 안 한 걸로 하자. " +
+      "아무한테도 말 안 할 거니까 걱정 마 ㅎㅎ 내일도 화이팅!",
+    clueSubstrings: [
+      "어제 그 사람이랑 통화한 건 그냥 안 한 걸로 하자",
+      "아무한테도 말 안 할 거니까 걱정 마"
+    ]
+  };
+
+  // clueSubstrings -> {id, start, end, found} 로 변환 (indexOf 기반, 겹치지 않음을 가정)
+  const clues = post.clueSubstrings.map((sub, i) => {
+    const start = post.bodyText.indexOf(sub);
+    if (start === -1) {
+      console.warn("단서 텍스트를 본문에서 찾을 수 없습니다:", sub);
+    }
+    return {
+      id: "clue_" + (i + 1),
+      start: start,
+      end: start + sub.length,
+      found: false
+    };
+  }).filter(c => c.start !== -1)
+    .sort((a, b) => a.start - b.start);
+
+  const fullText = post.bodyText;
+  const captionEl = document.getElementById("caption");
+  const bannerEl = document.getElementById("completeBanner");
+  const progressEl = document.getElementById("progress");
+
+  // ---- 렌더링 ------------------------------------------------------------
+  function render(justFoundIds) {
+    justFoundIds = justFoundIds || new Set();
+    captionEl.innerHTML = "";
+    let cursor = 0;
+
+    clues.forEach(clue => {
+      if (!clue.found) return;
+      if (clue.start > cursor) {
+        captionEl.appendChild(document.createTextNode(fullText.slice(cursor, clue.start)));
+      }
+      const span = document.createElement("span");
+      span.className = "clue-highlight " + (justFoundIds.has(clue.id) ? "sweep" : "static");
+      span.textContent = fullText.slice(clue.start, clue.end);
+      captionEl.appendChild(span);
+      cursor = clue.end;
+    });
+
+    if (cursor < fullText.length) {
+      captionEl.appendChild(document.createTextNode(fullText.slice(cursor)));
+    }
+
+    const foundCount = clues.filter(c => c.found).length;
+    progressEl.textContent = "단서 " + foundCount + " / " + clues.length + " 발견";
+
+    if (foundCount === clues.length && clues.length > 0) {
+      bannerEl.classList.add("show");
+    }
+  }
+
+  // ---- 선택 영역 -> 문자 오프셋 변환 --------------------------------------
+  function getCharOffset(root, node, nodeOffset) {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    let count = 0;
+    let current;
+    while ((current = walker.nextNode())) {
+      if (current === node) {
+        return count + nodeOffset;
+      }
+      count += current.textContent.length;
+    }
+    return count;
+  }
+
+  // ---- 드래그 종료 시 판정 ------------------------------------------------
+  document.addEventListener("mouseup", function () {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+
+    const range = selection.getRangeAt(0);
+
+    // 4.5-4: 빈 드래그(클릭만) -> 아무 판정 없음
+    if (range.collapsed) return;
+
+    // 4.5-5: 본문 영역 바깥으로의 드래그는 무시
+    if (!captionEl.contains(range.commonAncestorContainer) &&
+        range.commonAncestorContainer !== captionEl) {
+      return;
+    }
+
+    const rawStart = getCharOffset(captionEl, range.startContainer, range.startOffset);
+    const rawEnd = getCharOffset(captionEl, range.endContainer, range.endOffset);
+    const selStart = Math.min(rawStart, rawEnd);
+    const selEnd = Math.max(rawStart, rawEnd);
+
+    const justFound = new Set();
+
+    clues.forEach(clue => {
+      if (clue.found) return; // 4.2: 이미 찾은 단서는 재판정하지 않음
+      // 1글자 이상 겹치면 정답으로 인정 (4.2 밸런싱 변수)
+      const overlaps = selStart < clue.end && selEnd > clue.start;
+      if (overlaps) {
+        clue.found = true;
+        justFound.add(clue.id);
+      }
+    });
+
+    if (justFound.size > 0) {
+      // 정답 판정 시에만 브라우저 기본 선택을 정리하고 우리 하이라이트로 대체
+      selection.removeAllRanges();
+      render(justFound);
+    }
+    // 오답 드래그: 아무 반응 없음 (기본 브라우저 선택 표시만 남았다가 다음 클릭 시 사라짐)
+  });
+
+  render();
+})();
+</script>
+
+</body>
+</html>

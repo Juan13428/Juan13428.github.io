@@ -1,0 +1,80 @@
+{
+  "profiles": [
+    {
+      "id": "p_jihoon",
+      "handle": "jihoon_p",
+      "name": "박지훈",
+      "relationship": "고인 (플레이어=AI)",
+      "bio": "그냥, 기록.",
+      "followers": 214,
+      "following": 180,
+      "color": "#0095f6"
+    },
+    {
+      "id": "p_jiwon",
+      "handle": "jiwon.p_",
+      "name": "박지원",
+      "relationship": "여동생 (18)",
+      "bio": "고3 | 합격기원 🙏",
+      "followers": 342,
+      "following": 501,
+      "color": "#c77400"
+    },
+    {
+      "id": "p_gaeun",
+      "handle": "ga.eun__",
+      "name": "윤가은",
+      "relationship": "친구",
+      "bio": "필름 속에서 살기 📷",
+      "followers": 1204,
+      "following": 322,
+      "color": "#ed4956"
+    },
+    {
+      "id": "p_mother",
+      "handle": "sunhwa_kim",
+      "name": "어머니",
+      "relationship": "어머니",
+      "bio": "가족이 전부",
+      "followers": 58,
+      "following": 120,
+      "color": "#1e9e57"
+    }
+  ],
+  "posts": [
+    {
+      "id": "post_start",
+      "authorId": "p_jihoon",
+      "date": "2025-11-02",
+      "content": "오랜만에 셋이서. 이 날씨, 이 골목. 다시 오긴 어렵겠지.",
+      "imageDesc": "해질녘 골목, 세 명의 그림자",
+      "hashtags": ["골목산책", "필름사진"],
+      "likes": 43,
+      "isClue": true,
+      "clueEvent": "C1",
+      "clueNote": "시작 게시글. C1 대화의 앵커.",
+      "cluePhrases": ["다시 오긴 어렵겠지"],
+      "comments": [
+        { "id": "c_start_1", "author": "ga.eun__", "text": "이 사진 내가 찍은 거 잊지 마라", "likes": 5 },
+        { "id": "c_start_2", "author": "jiwon.p_", "text": "오빠 나만 빼고 갔네?", "likes": 2 }
+      ]
+    },
+    {
+      "id": "post_g1",
+      "authorId": "p_gaeun",
+      "date": "2025-11-03",
+      "content": "현상 맡긴 필름 찾아옴. 잘 나온 건 몇 장 없지만 #그날의빛 은 담겼다.",
+      "imageDesc": "필름 스캔 4분할 컷",
+      "hashtags": ["필름사진", "현상소"],
+      "likes": 87,
+      "isClue": true,
+      "clueEvent": "C2",
+      "clueNote": "가은 계정 진입 지점. 홉 1.",
+      "cluePhrases": ["잘 나온 건 몇 장 없지만"],
+      "comments": [
+        { "id": "c_g1_1", "author": "jihoon_p", "text": "마지막 장, 나 눈 감았지 #흑역사", "likes": 9 }
+      ]
+    }
+  ],
+  "startPostId": "post_start"
+}

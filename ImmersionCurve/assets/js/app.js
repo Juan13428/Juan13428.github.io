@@ -1,6 +1,6 @@
 /* ────────────────────────────────────────────
    몰입 곡선 에디터 — app.js
-   버전: 1.0.0
+   버전: 1.3.0
    기본 데이터는 data/default-data.json에서 로드
    ──────────────────────────────────────────── */
 "use strict";
@@ -68,32 +68,52 @@ function el(tag, attrs, parent) {
   return n;
 }
 
-/* Catmull-Rom → cubic bezier path (단조 x 정렬 가정) */
+/* ── 단조 3차 보간 (Fritsch–Carlson) ──
+   제어점이 항상 구간 안에 머물러, 포인트를 드래그해 간격이 좁아져도
+   곡선이 뒤로 감기거나(루프) 데이터 범위를 넘어 출렁이지 않는다. */
+function monotoneSlopes(pts) {
+  const n = pts.length, m = new Array(n).fill(0), d = new Array(n - 1);
+  for (let i = 0; i < n - 1; i++) {
+    const h = pts[i + 1].x - pts[i].x;
+    d[i] = h > 0 ? (pts[i + 1].y - pts[i].y) / h : 0;
+  }
+  m[0] = d[0]; m[n - 1] = d[n - 2];
+  for (let i = 1; i < n - 1; i++)
+    m[i] = d[i - 1] * d[i] <= 0 ? 0 : (d[i - 1] + d[i]) / 2; /* 극점에서는 기울기 0 */
+  for (let i = 0; i < n - 1; i++) {
+    if (d[i] === 0) { m[i] = 0; m[i + 1] = 0; continue; }
+    const a = m[i] / d[i], b = m[i + 1] / d[i], s = a * a + b * b;
+    if (s > 9) { const t = 3 / Math.sqrt(s); m[i] = t * a * d[i]; m[i + 1] = t * b * d[i]; }
+  }
+  return m;
+}
+
 function curvePath(pts) {
   if (pts.length === 0) return "";
   if (pts.length === 1) { const p = pts[0]; return `M ${X(p.x)} ${Y(p.y)}`; }
-  const P = pts.map(p => ({ x: X(p.x), y: Y(p.y) }));
-  let d = `M ${P[0].x} ${P[0].y}`;
-  for (let i = 0; i < P.length - 1; i++) {
-    const p0 = P[i - 1] || P[i], p1 = P[i], p2 = P[i + 1], p3 = P[i + 2] || p2;
-    const c1x = p1.x + (p2.x - p0.x) / 6, c1y = p1.y + (p2.y - p0.y) / 6;
-    const c2x = p2.x - (p3.x - p1.x) / 6, c2y = p2.y - (p3.y - p1.y) / 6;
-    d += ` C ${c1x} ${c1y}, ${c2x} ${c2y}, ${p2.x} ${p2.y}`;
+  const m = monotoneSlopes(pts);
+  let d = `M ${X(pts[0].x)} ${Y(pts[0].y)}`;
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p1 = pts[i], p2 = pts[i + 1], h = (p2.x - p1.x) / 3;
+    d += ` C ${X(p1.x + h)} ${Y(p1.y + m[i] * h)}, ${X(p2.x - h)} ${Y(p2.y - m[i + 1] * h)}, ${X(p2.x)} ${Y(p2.y)}`;
   }
   return d;
 }
 
-/* 곡선의 x 위치 보간값 (툴팁용) */
+/* 곡선의 x 위치 보간값 (툴팁용) — 그려지는 곡선과 동일한 Hermite 평가 */
 function curveValueAt(curve, x) {
   const pts = curve.points;
   if (!pts.length) return null;
   if (x <= pts[0].x) return pts[0].y;
   if (x >= pts[pts.length - 1].x) return pts[pts.length - 1].y;
+  const m = monotoneSlopes(pts);
   for (let i = 0; i < pts.length - 1; i++) {
     if (x >= pts[i].x && x <= pts[i + 1].x) {
-      const t = (x - pts[i].x) / (pts[i + 1].x - pts[i].x || 1);
-      const tt = t * t * (3 - 2 * t); // smoothstep 근사
-      return pts[i].y + (pts[i + 1].y - pts[i].y) * tt;
+      const h = pts[i + 1].x - pts[i].x || 1;
+      const t = (x - pts[i].x) / h;
+      const h00 = (1 + 2 * t) * (1 - t) * (1 - t), h10 = t * (1 - t) * (1 - t);
+      const h01 = t * t * (3 - 2 * t), h11 = t * t * (t - 1);
+      return h00 * pts[i].y + h10 * h * m[i] + h01 * pts[i + 1].y + h11 * h * m[i + 1];
     }
   }
   return null;
@@ -315,6 +335,16 @@ function renderPointList() {
     });
     row.appendChild(link);
     row.appendChild(go);
+
+    /* 포인트 삭제 */
+    const del = document.createElement("button");
+    del.className = "icon-btn del"; del.textContent = "✕"; del.title = "포인트 삭제";
+    del.addEventListener("click", () => {
+      c.points.splice(pi, 1);
+      hlPoint = null; /* 삭제로 인덱스가 밀리므로 하이라이트 초기화 */
+      render();
+    });
+    row.appendChild(del);
 
     box.appendChild(row);
   });
@@ -538,9 +568,15 @@ document.getElementById("flow-w").addEventListener("change", e => {
 });
 
 /* 저장 / 불러오기 / PNG */
+/* 활성 곡선 이름 기반 파일명 — OS/브라우저에서 금지된 특수문자만 제거 (한글 OK) */
+function exportFileName(ext) {
+  const name = (state.curves[state.activeCurve]?.name || "")
+    .replace(/[\\/:*?"<>|]/g, "").replace(/\s+/g, " ").trim();
+  return (name ? `몰입곡선_${name}` : "몰입곡선") + "." + ext;
+}
 document.getElementById("btn-save").addEventListener("click", () => {
   const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
-  downloadBlob(blob, "immersion-curve.json");
+  downloadBlob(blob, exportFileName("json"));
 });
 document.getElementById("file-load").addEventListener("change", e => {
   const f = e.target.files[0];
@@ -574,7 +610,7 @@ document.getElementById("btn-png").addEventListener("click", () => {
     cv.width = VB.w * 2; cv.height = VB.h * 2;
     cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
     URL.revokeObjectURL(url);
-    cv.toBlob(b => downloadBlob(b, "immersion-curve.png"), "image/png");
+    cv.toBlob(b => downloadBlob(b, exportFileName("png")), "image/png");
   };
   img.src = url;
 });

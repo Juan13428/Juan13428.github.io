@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Instory Planner — 사후관리 AI SNS 기획 툴</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    /* 인스타그램 라이트 팔레트 */
+    --bg:#fafafa; --panel:#ffffff; --panel2:#efefef; --border:#dbdbdb;
+    --text:#262626; --muted:#8e8e8e;
+    --blue:#0095f6; --blue-press:#1877f2; --blue-dim:#e7f3ff;
+    --link:#00376b;
+    --red:#ed4956; --red-dim:#fdecee;
+    --amber:#c77400; --amber-dim:#fff4e0;
+    --green:#1e9e57;
+    --highlight:#fff176;
+    --ig-grad:linear-gradient(45deg,#f9ce34 0%,#ee2a7b 50%,#6228d7 100%);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:'Pretendard','Apple SD Gothic Neo',system-ui,sans-serif;font-size:14px}
+  .mono{font-family:ui-monospace,'SF Mono',Consolas,monospace}
+  .script{font-family:'Brush Script MT','Segoe Script','Savoye LET',cursive}
+
+  /* ── 헤더 ── */
+  header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+    padding:10px 20px;border-bottom:1px solid var(--border);background:var(--panel);
+    position:sticky;top:0;z-index:20}
+  .logo{font-size:24px;line-height:1;
+    background:var(--ig-grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .logo-sub{font-size:12px;color:var(--muted)}
+  nav{display:flex;gap:4px;flex-wrap:wrap}
+  nav button{background:transparent;border:none;color:var(--muted);
+    border-radius:8px;padding:8px 12px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent}
+  nav button:hover{color:var(--text)}
+  nav button.active{color:var(--text);font-weight:700;border-bottom-color:var(--text);border-radius:0}
+  .header-right{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  #saveState{font-size:11px;color:var(--muted)}
+
+  /* ── 공용 ── */
+  main{max-width:1180px;margin:0 auto;padding:20px 16px 60px}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:14px}
+  h2{font-size:16px;margin:0 0 12px}
+  h3{font-size:14px;margin:0 0 10px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+  .field{display:flex;flex-direction:column;gap:4px;min-width:0}
+  .field>span{font-size:11px;color:var(--muted);letter-spacing:.04em}
+  input,select,textarea{background:var(--bg);border:1px solid var(--border);color:var(--text);
+    border-radius:8px;padding:8px 10px;font-size:13px;outline:none;font-family:inherit;width:100%}
+  input:focus,select:focus,textarea:focus{border-color:#a8a8a8}
+  textarea{min-height:70px;resize:vertical}
+  input[type=checkbox],input[type=radio]{width:auto;accent-color:var(--blue)}
+  input[type=color]{width:52px;height:36px;padding:3px;background:#fff}
+
+  .btn{background:#fff;border:1px solid var(--border);color:var(--text);
+    border-radius:8px;cursor:pointer;padding:8px 14px;font-size:13px;font-weight:600}
+  .btn.sm{padding:5px 10px;font-size:12px}
+  .btn.blue{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:700}
+  .btn.blue:hover{background:var(--blue-press)}
+  .btn.red{border:none;background:transparent;color:var(--red);font-weight:600}
+  .btn.dim{background:var(--panel2);border-color:var(--panel2);color:var(--text)}
+  .btn:hover{filter:brightness(0.97)}
+  .btn.blue:hover{filter:none}
+
+  .tag{font-size:12px;padding:2px 9px;border-radius:999px;background:var(--blue-dim);
+    color:var(--blue);display:inline-block;font-weight:600}
+  .tag.clickable{cursor:pointer}
+  .tag.active{background:var(--blue);color:#fff}
+  .clue-badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;
+    background:var(--red-dim);color:var(--red);
+    font-family:ui-monospace,monospace;display:inline-block}
+  .avatar{border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700}
+  .ring{border-radius:50%;padding:2.5px;background:var(--ig-grad);flex-shrink:0;display:inline-flex}
+  .ring>.avatar{border:2px solid #fff}
+  .muted{color:var(--muted)}
+  .warn{color:var(--amber)} .err{color:var(--red)} .ok{color:var(--green)}
+  label.inline{display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer}
+
+  /* ── 게시글 목록 ── */
+  .post-item{background:var(--panel);border:1px solid var(--border);border-radius:12px;margin-bottom:12px}
+  .post-item.clue{border-color:#f5b8bd}
+  .post-head{display:flex;gap:10px;align-items:center;padding:12px 14px;cursor:pointer;flex-wrap:wrap}
+  .post-head:hover{background:#fcfcfc;border-radius:12px}
+  .post-head .summary{flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:120px}
+  .post-body{border-top:1px solid var(--border);padding:14px;display:flex;flex-direction:column;gap:12px}
+  .clue-box{border-radius:10px;padding:12px;display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;
+    background:var(--bg);border:1px solid var(--border)}
+  .clue-box.on{background:var(--red-dim);border-color:#f5b8bd}
+  .comment-row{display:flex;gap:8px;align-items:center;margin-top:6px}
+
+  /* ── 분석 ── */
+  .hop-row{display:flex;gap:10px;align-items:flex-start;margin-bottom:10px}
+  .hop-label{width:62px;flex-shrink:0;text-align:center;font-family:ui-monospace,monospace;
+    font-size:12px;color:var(--blue);background:var(--blue-dim);border-radius:6px;padding:4px 0;font-weight:700}
+  .hop-label.iso{color:var(--amber);background:var(--amber-dim)}
+  .hop-chips{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+  .hop-chip{font-size:12px;padding:5px 10px;border-radius:8px;background:var(--panel);
+    border:1px solid var(--border);display:flex;gap:6px;align-items:center}
+  .hop-chip.clue{background:var(--red-dim);border-color:#f5b8bd}
+  .hop-chip.iso{border-style:dashed;border-color:#e3b878;color:var(--amber)}
+  .cov-grid{display:flex;gap:10px;flex-wrap:wrap}
+  .cov-card{flex:1 1 160px;background:var(--bg);border-radius:10px;padding:12px;border:1px solid var(--border)}
+  .cov-card.empty{border-color:#e3b878;background:var(--amber-dim)}
+
+  /* ── 미리보기 (인스타그램 스타일) ── */
+  .preview-wrap{display:flex;gap:20px;align-items:flex-start;flex-wrap:wrap;justify-content:center}
+  .phone{width:375px;max-width:100%;background:#fff;border:1px solid var(--border);
+    border-radius:28px;overflow:hidden;box-shadow:0 10px 32px rgba(0,0,0,.10)}
+  .phone-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;
+    border-bottom:1px solid var(--border);background:#fff}
+  .phone-feed{max-height:560px;overflow-y:auto;background:#fff}
+  .feed-post{border-bottom:1px solid var(--panel2);padding:10px 0 12px;position:relative}
+  .fp-head{display:flex;gap:10px;align-items:center;padding:0 12px 8px;cursor:pointer}
+  .fp-img{background:#fafafa;border-top:1px solid var(--panel2);border-bottom:1px solid var(--panel2);
+    aspect-ratio:4/3;display:flex;flex-direction:column;gap:6px;align-items:center;justify-content:center;
+    font-size:12px;color:var(--muted);text-align:center;padding:0 20px;user-select:none}
+  .fp-img .ico{font-size:26px;opacity:.55}
+  .fp-actions{display:flex;gap:14px;padding:9px 12px 5px;font-size:20px;line-height:1;user-select:none}
+  .fp-actions .save{margin-left:auto}
+  .fp-likes{padding:0 12px;font-size:13px;font-weight:700;user-select:none}
+  .fp-caption{padding:3px 12px 0;font-size:13px;line-height:1.55;white-space:pre-wrap}
+  .fp-caption b{margin-right:6px;user-select:none}
+  .fp-body{cursor:text}
+  .fp-tags{padding:4px 12px 0;display:flex;gap:8px;flex-wrap:wrap}
+  .fp-tag{color:var(--link);font-size:13px;cursor:pointer;font-weight:500}
+  .fp-tag.visited{color:var(--muted);font-weight:400}
+  .fp-tag.active{color:var(--blue);font-weight:700;text-decoration:underline}
+  .fp-more{padding:5px 12px 0;font-size:13px;color:var(--muted);cursor:pointer;user-select:none}
+  .fp-comment{padding:3px 12px 0;font-size:13px}
+  .fp-date{padding:5px 12px 0;font-size:10px;color:var(--muted);letter-spacing:.03em;text-transform:uppercase}
+  .phone-tabbar{display:flex;justify-content:space-around;padding:10px 0;border-top:1px solid var(--border);
+    font-size:19px;background:#fff;filter:grayscale(1);opacity:.8}
+  .pf-head{padding:16px 14px 14px;border-bottom:1px solid var(--panel2);display:flex;gap:18px;align-items:center;background:#fff}
+  .pf-stats{display:flex;flex:1;justify-content:space-around;text-align:center}
+  .pf-stats b{display:block;font-size:15px}
+  .pf-stats span{font-size:12px;color:var(--muted)}
+  .pf-bio{padding:0 14px 12px;border-bottom:1px solid var(--panel2);font-size:13px;background:#fff}
+  .side{width:260px;display:flex;flex-direction:column;gap:12px}
+  .back-btn{background:none;border:none;color:var(--text);font-size:20px;cursor:pointer;padding:0;line-height:1}
+
+  /* ── 단서 형광펜 하이라이트 ── */
+  .clue-highlight{
+    background-image:linear-gradient(120deg,var(--highlight) 0%,var(--highlight) 100%);
+    background-repeat:no-repeat;background-position:0 78%;
+    padding:1px 1px;border-radius:2px;
+    box-decoration-break:clone;-webkit-box-decoration-break:clone}
+  .clue-highlight.static{background-size:100% 55%}
+  .clue-highlight.sweep{background-size:0% 55%;
+    animation:sweepHighlight .55s cubic-bezier(.22,.61,.36,1) forwards}
+  @keyframes sweepHighlight{from{background-size:0% 55%}to{background-size:100% 55%}}
+
+  @media (max-width:520px){ .side{width:100%} }
+</style>
+</head>
+<body>
+
+<header>
+  <div style="display:flex;align-items:baseline;gap:10px">
+    <span class="logo script">Instory Planner</span>
+    <span class="logo-sub">사후관리 AI · SNS 피드 기획 툴</span>
+  </div>
+  <nav id="nav"></nav>
+  <div class="header-right">
+    <span id="saveState">대기</span>
+    <button class="btn sm" onclick="App.exportJson()">JSON 저장</button>
+    <button class="btn sm" onclick="document.getElementById('jsonFile').click()">JSON 불러오기</button>
+    <input type="file" id="jsonFile" accept=".json" style="display:none" onchange="App.importJson(event)">
+    <button class="btn sm blue" onclick="App.exportXlsx()">⬇ 엑셀 내보내기</button>
+  </div>
+</header>
+
+<main id="main"></main>
+
+<script>
+"use strict";
+
+/* ═══════════ 상태 ═══════════ */
+const uid = () => Math.random().toString(36).slice(2, 9);
+const C_EVENTS = ["C1","C2","C3","C4","C5"];
+const STORAGE_KEY = "afterlife-sns-planner-v1";
+const TAG_RE = /#([0-9A-Za-z_가-힣]+)/g;
+
+const S = {
+  profiles: [
+    { id:"p_jihoon", handle:"jihoon_p", name:"박지훈", relationship:"고인 (플레이어=AI)", bio:"그냥, 기록.", followers:214, following:180, color:"#0095f6" },
+    { id:"p_jiwon", handle:"jiwon.p_", name:"박지원", relationship:"여동생 (18)", bio:"고3 | 합격기원 🙏", followers:342, following:501, color:"#c77400" },
+    { id:"p_gaeun", handle:"ga.eun__", name:"윤가은", relationship:"친구", bio:"필름 속에서 살기 📷", followers:1204, following:322, color:"#ed4956" },
+    { id:"p_mother", handle:"sunhwa_kim", name:"어머니", relationship:"어머니", bio:"가족이 전부", followers:58, following:120, color:"#1e9e57" },
+  ],
+  posts: [
+    { id:"post_start", authorId:"p_jihoon", date:"2025-11-02",
+      content:"오랜만에 셋이서. 이 날씨, 이 골목. 다시 오긴 어렵겠지.",
+      imageDesc:"해질녘 골목, 세 명의 그림자", hashtags:["골목산책","필름사진"], likes:43,
+      isClue:true, clueEvent:"C1", clueNote:"시작 게시글. C1 대화의 앵커.",
+      cluePhrases:["다시 오긴 어렵겠지"],
+      comments:[
+        { id:uid(), author:"ga.eun__", text:"이 사진 내가 찍은 거 잊지 마라", likes:5 },
+        { id:uid(), author:"jiwon.p_", text:"오빠 나만 빼고 갔네?", likes:2 },
+      ]},
+    { id:"post_g1", authorId:"p_gaeun", date:"2025-11-03",
+      content:"현상 맡긴 필름 찾아옴. 잘 나온 건 몇 장 없지만 #그날의빛 은 담겼다.",
+      imageDesc:"필름 스캔 4분할 컷", hashtags:["필름사진","현상소"], likes:87,
+      isClue:true, clueEvent:"C2", clueNote:"가은 계정 진입 지점. 홉 1.",
+      cluePhrases:["잘 나온 건 몇 장 없지만"],
+      comments:[{ id:uid(), author:"jihoon_p", text:"마지막 장, 나 눈 감았지 #흑역사", likes:9 }]},
+  ],
+  startPostId: "post_start",
+};
+
+/* 탭/화면 상태 (저장 대상 아님) */
+const U = {
+  tab: "posts",
+  openId: null,
+  filterAuthor: "all",
+  clueOnly: false,
+  search: "",
+  storageOk: false,
+};
+/* 미리보기 상태 */
+const P = {
+  view:{mode:"feed"}, history:[], tagJumps:0, showClues:true,
+  openComments:{},          /* postId -> bool */
+  visited:{},               /* tag -> true (한 번이라도 들어간 해시태그) */
+  foundClues:{},            /* postId -> Set(phraseIdx) */
+  _justFound:null,          /* {postId, ids:Set} 렌더 직후 sweep 애니메이션용 */
+};
+let resetFeedScroll = false; /* 화면 전환 시에만 피드 스크롤 초기화 */
+
+/* ═══════════ 유틸 ═══════════ */
+function esc(s){ return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function profById(id){ return S.profiles.find(p => p.id === id); }
+function normTags(raw){
+  return Array.from(new Set(raw.split(/[,\s]+/).map(t => t.replace(/^#/,"").trim()).filter(Boolean)));
+}
+/* 텍스트 안에 직접 쓴 #태그 추출 */
+function inlineTags(text){
+  const out = [];
+  let m;
+  TAG_RE.lastIndex = 0;
+  while ((m = TAG_RE.exec(String(text || "")))) out.push(m[1]);
+  return out;
+}
+/* 게시글의 유효 태그 = 태그 필드 + 본문 인라인 + 댓글 인라인 (합집합) */
+function effTags(p){
+  return Array.from(new Set([
+    ...(p.hashtags || []),
+    ...inlineTags(p.content),
+    ...(p.comments || []).flatMap(c => inlineTags(c.text)),
+  ]));
+}
+function avatarHtml(pr, size, ring){
+  const c = (pr && pr.color) || "#8e8e8e";
+  const ch = esc(((pr && pr.name) || "?").slice(0,1));
+  const core = `<div class="avatar" style="width:${size}px;height:${size}px;background:${c}1a;color:${c};font-size:${Math.round(size*0.42)}px">${ch}</div>`;
+  return ring ? `<span class="ring">${core}</span>` : core;
+}
+function computeHops(){
+  const start = S.startPostId;
+  if (!start || !S.posts.some(p => p.id === start)) return {};
+  const tagMap = {};
+  S.posts.forEach(p => effTags(p).forEach(t => { (tagMap[t] = tagMap[t] || []).push(p.id); }));
+  const adj = {};
+  Object.values(tagMap).forEach(ids => {
+    ids.forEach(a => ids.forEach(b => { if (a !== b) (adj[a] = adj[a] || new Set()).add(b); }));
+  });
+  const hops = { [start]: 0 };
+  const q = [start];
+  while (q.length){
+    const cur = q.shift();
+    (adj[cur] ? Array.from(adj[cur]) : []).forEach(n => {
+      if (!(n in hops)){ hops[n] = hops[cur] + 1; q.push(n); }
+    });
+  }
+  return hops;
+}
+function tagMapAll(){
+  const m = {};
+  S.posts.forEach(p => effTags(p).forEach(t => { (m[t] = m[t] || []).push(p); }));
+  return m;
+}
+
+/* ═══════════ 저장 ═══════════ */
+let saveTimer = null;
+function setSaveState(txt, isErr){
+  const el = document.getElementById("saveState");
+  el.textContent = txt;
+  el.style.color = isErr ? "var(--red)" : "var(--muted)";
+}
+function scheduleSave(){
+  if (!U.storageOk){ setSaveState("자동 저장 없음 · JSON 저장 이용"); return; }
+  setSaveState("저장 중…");
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    try {
+      await window.storage.set(STORAGE_KEY, JSON.stringify({ profiles:S.profiles, posts:S.posts, startPostId:S.startPostId }));
+      setSaveState("자동 저장됨");
+    } catch(e){ setSaveState("저장 실패", true); }
+  }, 800);
+}
+async function loadSaved(){
+  try {
+    if (!window.storage) throw new Error("no storage");
+    const r = await window.storage.get(STORAGE_KEY);
+    U.storageOk = true;
+    if (r && r.value){
+      const d = JSON.parse(r.value);
+      if (d.profiles) S.profiles = d.profiles;
+      if (d.posts) S.posts = d.posts;
+      if (d.startPostId !== undefined) S.startPostId = d.startPostId;
+      setSaveState("불러옴");
+    } else setSaveState("자동 저장 준비됨");
+  } catch(e){
+    U.storageOk = !!window.storage;
+    setSaveState(U.storageOk ? "자동 저장 준비됨" : "자동 저장 없음 · JSON 저장 이용");
+  }
+}
+
+/* ═══════════ 앱 동작 (전역 핸들러) ═══════════ */
+const App = {
+
+  /* ── 탭 ── */
+  setTab(t){ U.tab = t; resetFeedScroll = true; render(); },
+
+  /* ── 프로필 ── */
+  addProfile(){
+    S.profiles.push({ id:"p_"+uid(), handle:"new_user", name:"새 인물", relationship:"", bio:"",
+      followers:0, following:0, color:"#"+Math.floor(Math.random()*0xffffff).toString(16).padStart(6,"0") });
+    scheduleSave(); render();
+  },
+  updProfile(id, key, val){
+    const p = profById(id); if (!p) return;
+    p[key] = (key === "followers" || key === "following") ? (+val || 0) : val;
+    scheduleSave(); render();
+  },
+  delProfile(id){
+    const used = S.posts.filter(p => p.authorId === id).length;
+    if (used > 0){ alert("이 프로필로 작성된 게시글이 " + used + "개 있습니다. 먼저 게시글의 작성자를 변경하세요."); return; }
+    if (confirm("프로필을 삭제할까요?")){
+      S.profiles = S.profiles.filter(p => p.id !== id);
+      scheduleSave(); render();
+    }
+  },
+
+  /* ── 게시글 ── */
+  addPost(){
+    const id = "post_"+uid();
+    S.posts.unshift({ id, authorId:(S.profiles[0]||{}).id || "", date:new Date().toISOString().slice(0,10),
+      content:"", imageDesc:"", hashtags:[], likes:0, isClue:false, clueEvent:"C1", clueNote:"",
+      cluePhrases:[], comments:[] });
+    U.openId = id;
+    scheduleSave(); render();
+  },
+  toggleOpen(id){ U.openId = (U.openId === id) ? null : id; render(); },
+  updPost(id, key, val){
+    const p = S.posts.find(x => x.id === id); if (!p) return;
+    if (key === "likes") p.likes = +val || 0;
+    else if (key === "hashtags") p.hashtags = normTags(val);
+    else if (key === "isClue") p.isClue = !!val;
+    else if (key === "cluePhrases") p.cluePhrases = val.split("\n").map(s => s.trim()).filter(Boolean);
+    else p[key] = val;
+    scheduleSave(); render();
+  },
+  setStart(id){ S.startPostId = id; scheduleSave(); render(); },
+  dupPost(id){
+    const p = S.posts.find(x => x.id === id); if (!p) return;
+    const nid = "post_"+uid();
+    const copy = JSON.parse(JSON.stringify(p));
+    copy.id = nid;
+    copy.comments = (copy.comments||[]).map(c => ({ ...c, id:uid() }));
+    S.posts.unshift(copy);
+    U.openId = nid;
+    scheduleSave(); render();
+  },
+  delPost(id){
+    if (confirm("게시글을 삭제할까요?")){
+      S.posts = S.posts.filter(p => p.id !== id);
+      if (S.startPostId === id) S.startPostId = "";
+      scheduleSave(); render();
+    }
+  },
+  setFilter(key, val){
+    if (key === "author") U.filterAuthor = val;
+    if (key === "clueOnly") U.clueOnly = !!val;
+    if (key === "search") U.search = val;
+    render();
+  },
+
+  /* ── 댓글 ── */
+  addComment(postId){
+    const p = S.posts.find(x => x.id === postId); if (!p) return;
+    (p.comments = p.comments || []).push({ id:uid(), author:"", text:"", likes:0 });
+    scheduleSave(); render();
+  },
+  updComment(postId, cid, key, val){
+    const p = S.posts.find(x => x.id === postId); if (!p) return;
+    const c = (p.comments||[]).find(x => x.id === cid); if (!c) return;
+    c[key] = (key === "likes") ? (+val || 0) : val;
+    scheduleSave(); render();
+  },
+  delComment(postId, cid){
+    const p = S.posts.find(x => x.id === postId); if (!p) return;
+    p.comments = (p.comments||[]).filter(x => x.id !== cid);
+    scheduleSave(); render();
+  },
+
+  /* ── 미리보기 ── */
+  pvGo(next, jump){
+    P.history.push(P.view);
+    if (jump) P.tagJumps++;
+    P.view = next;
+    resetFeedScroll = true;   /* 화면 전환은 스크롤 최상단부터 */
+    render();
+  },
+  pvGoTag(tag){
+    if (P.view.mode === "tag" && P.view.tag === tag) return;
+    P.visited[tag] = true;    /* 한 번이라도 들어간 태그는 회색 처리 */
+    App.pvGo({ mode:"tag", tag }, true);
+  },
+  pvGoProfile(pid){
+    if (P.view.mode === "profile" && P.view.profileId === pid) return;
+    App.pvGo({ mode:"profile", profileId:pid }, false);
+  },
+  pvBack(){
+    if (!P.history.length) return;
+    P.view = P.history.pop();
+    resetFeedScroll = true;
+    render();
+  },
+  pvReset(){
+    P.view = {mode:"feed"}; P.history = []; P.tagJumps = 0;
+    P.openComments = {}; P.visited = {}; P.foundClues = {};
+    resetFeedScroll = true;
+    render();
+  },
+  pvToggleClues(v){ P.showClues = !!v; render(); },
+  pvToggleComments(id){
+    P.openComments[id] = !P.openComments[id];
+    render();  /* 스크롤은 render()에서 그대로 복원됨 */
+  },
+
+  /* ── JSON 저장/불러오기 ── */
+  exportJson(){
+    const blob = new Blob([JSON.stringify({ profiles:S.profiles, posts:S.posts, startPostId:S.startPostId }, null, 2)],
+      { type:"application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "사후관리AI_SNS기획.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  },
+  importJson(ev){
+    const f = ev.target.files && ev.target.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => {
+      try {
+        const d = JSON.parse(r.result);
+        if (d.profiles) S.profiles = d.profiles;
+        if (d.posts) S.posts = d.posts;
+        if (d.startPostId !== undefined) S.startPostId = d.startPostId;
+        scheduleSave(); render();
+      } catch(e){ alert("JSON 파일을 읽을 수 없습니다."); }
+    };
+    r.readAsText(f);
+    ev.target.value = "";
+  },
+
+  /* ── 엑셀 내보내기 ── */
+  exportXlsx(){
+    if (typeof XLSX === "undefined"){ alert("엑셀 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인하세요."); return; }
+    const hops = computeHops();
+    const wb = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(S.profiles.map(p => ({
+      ID:p.id, 핸들:"@"+p.handle, 이름:p.name, 관계:p.relationship, 소개:p.bio,
+      팔로워:p.followers, 팔로잉:p.following,
+      게시글수:S.posts.filter(x => x.authorId === p.id).length,
+    }))), "프로필");
+
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(S.posts.map(p => ({
+      ID:p.id, 작성자:(profById(p.authorId)||{}).name || p.authorId, 날짜:p.date,
+      본문:p.content, 이미지설명:p.imageDesc,
+      해시태그:effTags(p).map(t => "#"+t).join(" "),
+      좋아요:p.likes, 댓글수:(p.comments||[]).length,
+      단서여부:p.isClue ? "Y" : "", 연결이벤트:p.isClue ? p.clueEvent : "",
+      단서메모:p.isClue ? p.clueNote : "",
+      단서문구:(p.cluePhrases||[]).join(" | "),
+      홉:(p.id in hops) ? hops[p.id] : "도달불가",
+      시작게시글:(p.id === S.startPostId) ? "★" : "",
+    }))), "게시글");
+
+    const commentRows = [];
+    S.posts.forEach(p => (p.comments||[]).forEach(c => commentRows.push({
+      게시글ID:p.id, 게시글작성자:(profById(p.authorId)||{}).name || "",
+      댓글작성자:c.author, 내용:c.text, 좋아요:c.likes,
+    })));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(
+      commentRows.length ? commentRows : [{ 게시글ID:"", 댓글작성자:"", 내용:"", 좋아요:"" }]
+    ), "댓글");
+
+    const tm = tagMapAll();
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(Object.entries(tm).map(([t, ps]) => ({
+      해시태그:"#"+t, 게시글수:ps.length,
+      연결게시글:ps.map(p => p.id).join(", "),
+      단서포함:ps.some(p => p.isClue) ? "Y" : "",
+    }))), "해시태그");
+
+    XLSX.writeFile(wb, "사후관리AI_SNS기획.xlsx");
+  },
+};
+
+/* ═══════════ 단서 드래그 하이라이트 ═══════════ */
+/* 본문 렌더링: 발견된 단서 형광펜 + 인라인 #태그를 세그먼트로 조립 */
+function buildMarks(p, foundSet){
+  const text = p.content || "";
+  const marks = [];
+  (p.cluePhrases || []).forEach((ph, i) => {
+    if (!foundSet.has(i)) return;
+    const s = text.indexOf(ph);
+    if (s === -1) return;
+    marks.push({ start:s, end:s+ph.length, type:"clue", idx:i });
+  });
+  let m;
+  TAG_RE.lastIndex = 0;
+  while ((m = TAG_RE.exec(text))) marks.push({ start:m.index, end:m.index+m[0].length, type:"tag", tag:m[1] });
+  /* 시작 위치순 정렬, 같은 구간이면 단서 우선. 겹치는 뒷 마크는 버림 */
+  marks.sort((a,b) => a.start - b.start || (a.type === "clue" ? -1 : 1));
+  const out = [];
+  let last = 0;
+  marks.forEach(mk => { if (mk.start >= last){ out.push(mk); last = mk.end; } });
+  return out;
+}
+function tagSpan(tag, extraCls){
+  const visited = P.visited[tag];
+  const active = P.view.mode === "tag" && P.view.tag === tag;
+  return `<span class="fp-tag ${visited?"visited":""} ${active?"active":""} ${extraCls||""}"
+    onclick="App.pvGoTag('${esc(tag)}')">#${esc(tag)}</span>`;
+}
+function captionHtml(p){
+  const text = p.content || "";
+  const found = P.foundClues[p.id] || new Set();
+  const just = (P._justFound && P._justFound.postId === p.id) ? P._justFound.ids : new Set();
+  const marks = buildMarks(p, found);
+  let html = "";
+  let cur = 0;
+  marks.forEach(mk => {
+    if (mk.start > cur) html += esc(text.slice(cur, mk.start));
+    if (mk.type === "clue")
+      html += `<span class="clue-highlight ${just.has(mk.idx)?"sweep":"static"}">${esc(text.slice(mk.start, mk.end))}</span>`;
+    else
+      html += tagSpan(mk.tag);
+    cur = mk.end;
+  });
+  if (cur < text.length) html += esc(text.slice(cur));
+  return html;
+}
+/* 댓글 텍스트: 인라인 #태그만 클릭 가능하게 */
+function commentHtml(text){
+  const t = String(text || "");
+  let html = "";
+  let cur = 0;
+  let m;
+  TAG_RE.lastIndex = 0;
+  while ((m = TAG_RE.exec(t))){
+    if (m.index > cur) html += esc(t.slice(cur, m.index));
+    html += tagSpan(m[1]);
+    cur = m.index + m[0].length;
+  }
+  html += esc(t.slice(cur));
+  return html;
+}
+/* 선택 영역 -> 문자 오프셋 (하이라이트/태그 span이 섞여 있어도 텍스트 노드 순회로 정확히 계산) */
+function getCharOffset(root, node, nodeOffset){
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+  let count = 0;
+  let current;
+  while ((current = walker.nextNode())){
+    if (current === node) return count + nodeOffset;
+    count += current.textContent.length;
+  }
+  return count;
+}
+function handleSelection(){
+  const sel = window.getSelection();
+  if (!sel || sel.rangeCount === 0) return;
+  const range = sel.getRangeAt(0);
+  if (range.collapsed) return; /* 클릭만 한 경우 판정 없음 */
+
+  let node = range.commonAncestorContainer;
+  if (node.nodeType === 3) node = node.parentNode;
+  const bodyEl = (node && node.closest) ? node.closest(".fp-body") : null;
+  if (!bodyEl) return; /* 본문 밖 드래그 무시 */
+
+  const postId = bodyEl.dataset.post;
+  const p = S.posts.find(x => x.id === postId);
+  if (!p || !(p.cluePhrases||[]).length) return;
+
+  const raw0 = getCharOffset(bodyEl, range.startContainer, range.startOffset);
+  const raw1 = getCharOffset(bodyEl, range.endContainer, range.endOffset);
+  const selS = Math.min(raw0, raw1);
+  const selE = Math.max(raw0, raw1);
+
+  const text = p.content || "";
+  const found = P.foundClues[postId] = P.foundClues[postId] || new Set();
+  const just = new Set();
+  (p.cluePhrases||[]).forEach((ph, i) => {
+    if (found.has(i)) return; /* 이미 찾은 단서는 재판정 안 함 */
+    const st = text.indexOf(ph);
+    if (st === -1) return;
+    if (selS < st + ph.length && selE > st){ found.add(i); just.add(i); } /* 1글자 이상 겹치면 정답 */
+  });
+
+  if (just.size){
+    sel.removeAllRanges();
+    P._justFound = { postId, ids:just };
+    render();
+    P._justFound = null;
+  }
+  /* 오답 드래그: 아무 반응 없음 */
+}
+document.addEventListener("mouseup", handleSelection);
+document.addEventListener("touchend", () => setTimeout(handleSelection, 10));
+
+/* ═══════════ 렌더링 ═══════════ */
+function render(){
+  /* 피드 스크롤 위치 보존 (댓글 토글, 단서 발견 등 제자리 갱신용) */
+  const oldFeed = document.querySelector(".phone-feed");
+  const keepScroll = oldFeed && !resetFeedScroll ? oldFeed.scrollTop : 0;
+
+  document.getElementById("nav").innerHTML = [
+    ["posts","게시글"], ["profiles","프로필"], ["analysis","경로 분석"], ["preview","플레이 미리보기"],
+  ].map(([k,label]) =>
+    `<button class="${U.tab===k?"active":""}" onclick="App.setTab('${k}')">${label}</button>`
+  ).join("");
+
+  const main = document.getElementById("main");
+  if (U.tab === "profiles") main.innerHTML = renderProfiles();
+  else if (U.tab === "posts") main.innerHTML = renderPosts();
+  else if (U.tab === "analysis") main.innerHTML = renderAnalysis();
+  else main.innerHTML = renderPreview();
+
+  const newFeed = document.querySelector(".phone-feed");
+  if (newFeed && !resetFeedScroll) newFeed.scrollTop = keepScroll;
+  resetFeedScroll = false;
+}
+
+/* ── 프로필 탭 ── */
+function renderProfiles(){
+  let h = `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+    <h2 style="margin:0">프로필 <span class="muted" style="font-weight:400">(${S.profiles.length})</span></h2>
+    <button class="btn sm blue" onclick="App.addProfile()">+ 프로필 추가</button>
+  </div>`;
+
+  h += S.profiles.map(p => `
+    <div class="card" style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap">
+      ${avatarHtml(p, 46)}
+      <div style="flex:1;min-width:260px;display:flex;flex-direction:column;gap:10px">
+        <div class="row">
+          <label class="field" style="flex:1"><span>이름</span>
+            <input value="${esc(p.name)}" onchange="App.updProfile('${p.id}','name',this.value)"></label>
+          <label class="field" style="flex:1"><span>핸들 (@)</span>
+            <input value="${esc(p.handle)}" onchange="App.updProfile('${p.id}','handle',this.value)"></label>
+          <label class="field" style="flex:1"><span>관계 (기획 메모)</span>
+            <input value="${esc(p.relationship)}" onchange="App.updProfile('${p.id}','relationship',this.value)"></label>
+        </div>
+        <div class="row">
+          <label class="field" style="flex:2"><span>소개글</span>
+            <input value="${esc(p.bio)}" onchange="App.updProfile('${p.id}','bio',this.value)"></label>
+          <label class="field"><span>팔로워</span>
+            <input type="number" style="width:90px" value="${p.followers}" onchange="App.updProfile('${p.id}','followers',this.value)"></label>
+          <label class="field"><span>팔로잉</span>
+            <input type="number" style="width:90px" value="${p.following}" onchange="App.updProfile('${p.id}','following',this.value)"></label>
+          <label class="field"><span>색상</span>
+            <input type="color" value="${esc(p.color)}" onchange="App.updProfile('${p.id}','color',this.value)"></label>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span class="mono muted" style="font-size:11px">${p.id} · 게시글 ${S.posts.filter(x => x.authorId === p.id).length}개</span>
+          <button class="btn sm red" onclick="App.delProfile('${p.id}')">삭제</button>
+        </div>
+      </div>
+    </div>`).join("");
+  return h;
+}
+
+/* ── 게시글 탭 ── */
+function renderPosts(){
+  const hops = computeHops();
+  const filtered = S.posts.filter(p =>
+    (U.filterAuthor === "all" || p.authorId === U.filterAuthor) &&
+    (!U.clueOnly || p.isClue) &&
+    (!U.search || (p.content||"").includes(U.search) || effTags(p).some(t => t.includes(U.search.replace(/^#/,""))))
+  );
+
+  let h = `<div class="row" style="margin-bottom:14px">
+    <h2 style="margin:0;margin-right:auto">게시글 <span class="muted" style="font-weight:400">(${filtered.length}/${S.posts.length})</span></h2>
+    <label class="field"><span>작성자 필터</span>
+      <select style="width:140px" onchange="App.setFilter('author',this.value)">
+        <option value="all">전체</option>
+        ${S.profiles.map(p => `<option value="${p.id}" ${U.filterAuthor===p.id?"selected":""}>${esc(p.name)}</option>`).join("")}
+      </select></label>
+    <label class="field"><span>검색 (본문·태그)</span>
+      <input style="width:170px" value="${esc(U.search)}" placeholder="키워드" onchange="App.setFilter('search',this.value)"></label>
+    <label class="inline" style="padding-bottom:8px">
+      <input type="checkbox" ${U.clueOnly?"checked":""} onchange="App.setFilter('clueOnly',this.checked)"> 단서만</label>
+    <button class="btn sm blue" style="margin-bottom:6px" onclick="App.addPost()">+ 게시글 추가</button>
+  </div>`;
+
+  h += filtered.map(p => {
+    const author = profById(p.authorId);
+    const open = U.openId === p.id;
+    const hop = (p.id in hops) ? hops[p.id] : null;
+    const inline = Array.from(new Set([...inlineTags(p.content), ...(p.comments||[]).flatMap(c => inlineTags(c.text))]));
+
+    let body = "";
+    if (open){
+      body = `<div class="post-body">
+        <div class="row">
+          <label class="field"><span>작성자</span>
+            <select style="width:140px" onchange="App.updPost('${p.id}','authorId',this.value)">
+              ${S.profiles.map(pr => `<option value="${pr.id}" ${p.authorId===pr.id?"selected":""}>${esc(pr.name)}</option>`).join("")}
+            </select></label>
+          <label class="field"><span>날짜</span>
+            <input type="date" style="width:150px" value="${esc(p.date)}" onchange="App.updPost('${p.id}','date',this.value)"></label>
+          <label class="field"><span>좋아요</span>
+            <input type="number" style="width:90px" value="${p.likes}" onchange="App.updPost('${p.id}','likes',this.value)"></label>
+          <label class="field" style="flex:1"><span>해시태그 (쉼표/공백 구분)</span>
+            <input value="${esc((p.hashtags||[]).map(t => "#"+t).join(" "))}" placeholder="#필름사진 #골목산책"
+              onchange="App.updPost('${p.id}','hashtags',this.value)"></label>
+        </div>
+        <label class="field"><span>본문 — #태그를 직접 쓰면 인라인 해시태그로 자동 인식됩니다</span>
+          <textarea onchange="App.updPost('${p.id}','content',this.value)">${esc(p.content)}</textarea></label>
+        ${inline.length ? `<div class="muted" style="font-size:12px">인라인 태그 감지: ${inline.map(t => "#"+esc(t)).join(" ")}</div>` : ""}
+        <label class="field"><span>이미지 설명 (아트 발주용 메모)</span>
+          <input value="${esc(p.imageDesc)}" placeholder="예) 해질녘 골목, 세 명의 그림자"
+            onchange="App.updPost('${p.id}','imageDesc',this.value)"></label>
+
+        <div class="clue-box ${p.isClue?"on":""}">
+          <label class="inline" style="padding-bottom:8px">
+            <input type="checkbox" ${p.isClue?"checked":""} onchange="App.updPost('${p.id}','isClue',this.checked)">
+            <span style="font-weight:700;color:${p.isClue?"var(--red)":"var(--muted)"}">단서 게시글</span></label>
+          ${p.isClue ? `
+          <label class="field"><span>연결 대화 이벤트</span>
+            <select style="width:100px" onchange="App.updPost('${p.id}','clueEvent',this.value)">
+              ${C_EVENTS.map(c => `<option ${p.clueEvent===c?"selected":""}>${c}</option>`).join("")}
+            </select></label>
+          <label class="field" style="flex:1"><span>단서 메모 (무엇을 알게 되는가)</span>
+            <input value="${esc(p.clueNote)}" onchange="App.updPost('${p.id}','clueNote',this.value)"></label>
+          <label class="field" style="flex-basis:100%"><span>단서 문구 — 드래그 판정 대상, 본문 속 문장을 줄바꿈으로 구분해 입력</span>
+            <textarea style="min-height:52px" onchange="App.updPost('${p.id}','cluePhrases',this.value)">${esc((p.cluePhrases||[]).join("\n"))}</textarea></label>` : ""}
+          <label class="inline" style="padding-bottom:8px">
+            <input type="radio" name="startPost" ${p.id===S.startPostId?"checked":""} onchange="App.setStart('${p.id}')">
+            <span style="color:${p.id===S.startPostId?"var(--amber)":"var(--muted)"}">시작 게시글로 지정</span></label>
+        </div>
+
+        <div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span class="muted" style="font-size:11px;letter-spacing:.04em">댓글 (${(p.comments||[]).length}) — 댓글 안에도 #태그를 쓸 수 있습니다</span>
+            <button class="btn sm dim" onclick="App.addComment('${p.id}')">+ 댓글 추가</button>
+          </div>
+          ${(p.comments||[]).map(c => `
+            <div class="comment-row">
+              <input style="width:130px" placeholder="작성자 핸들" value="${esc(c.author)}"
+                onchange="App.updComment('${p.id}','${c.id}','author',this.value)">
+              <input style="flex:1" placeholder="댓글 내용 (#태그 가능)" value="${esc(c.text)}"
+                onchange="App.updComment('${p.id}','${c.id}','text',this.value)">
+              <input type="number" style="width:70px" title="좋아요" value="${c.likes}"
+                onchange="App.updComment('${p.id}','${c.id}','likes',this.value)">
+              <button class="btn sm red" onclick="App.delComment('${p.id}','${c.id}')">×</button>
+            </div>`).join("")}
+        </div>
+
+        <div style="display:flex;gap:8px;justify-content:flex-end;align-items:center">
+          <span class="mono muted" style="font-size:11px;margin-right:auto">${p.id}</span>
+          <button class="btn sm" onclick="App.dupPost('${p.id}')">복제</button>
+          <button class="btn sm red" onclick="App.delPost('${p.id}')">삭제</button>
+        </div>
+      </div>`;
+    }
+
+    return `<div class="post-item ${p.isClue?"clue":""}">
+      <div class="post-head" onclick="App.toggleOpen('${p.id}')">
+        ${avatarHtml(author, 30)}
+        <span style="font-weight:700;font-size:13px">${esc((author||{}).name || "?")}</span>
+        <span class="mono muted" style="font-size:12px">${esc(p.date)}</span>
+        <span class="summary">${p.content ? esc(p.content) : '<i class="muted">내용 없음</i>'}</span>
+        ${p.id===S.startPostId ? '<span class="warn" style="font-size:11px;font-weight:700">★ 시작</span>' : ""}
+        ${hop !== null
+          ? `<span class="mono" style="font-size:11px;color:var(--blue);font-weight:700">hop ${hop}</span>`
+          : '<span class="mono warn" style="font-size:11px">도달불가</span>'}
+        ${p.isClue ? `<span class="clue-badge">단서 ${esc(p.clueEvent||"?")}</span>` : ""}
+        <span class="muted" style="font-size:12px">${open?"▲":"▼"}</span>
+      </div>${body}
+    </div>`;
+  }).join("");
+
+  if (filtered.length === 0)
+    h += `<div class="muted" style="text-align:center;padding:30px;font-size:13px">조건에 맞는 게시글이 없습니다. 필터를 조정하거나 새 게시글을 추가하세요.</div>`;
+  return h;
+}
+
+/* ── 경로 분석 탭 ── */
+function renderAnalysis(){
+  const hops = computeHops();
+  const tm = tagMapAll();
+  const hopVals = Object.values(hops);
+  const maxHop = hopVals.length ? Math.max(...hopVals) : 0;
+  const unreachable = S.posts.filter(p => !(p.id in hops));
+
+  const warnings = [];
+  unreachable.filter(p => p.isClue).forEach(p =>
+    warnings.push({ lv:"err", msg:`단서 게시글 「${esc((p.content||p.id).slice(0,20))}…」(${esc(p.clueEvent)})이 시작점에서 도달 불가합니다. 해시태그 연결을 추가하세요.` }));
+  S.posts.forEach(p => (p.cluePhrases||[]).forEach(ph => {
+    if ((p.content||"").indexOf(ph) === -1)
+      warnings.push({ lv:"err", msg:`단서 문구 「${esc(ph.slice(0,20))}」가 게시글 「${esc((p.content||p.id).slice(0,14))}…」 본문에 없습니다. 드래그로 찾을 수 없는 상태입니다.` });
+  }));
+  Object.entries(tm).filter(([,ps]) => ps.length === 1).forEach(([t]) =>
+    warnings.push({ lv:"warn", msg:`#${esc(t)} 는 게시글 1개에만 달려 있어 이동 경로로 기능하지 않습니다.` }));
+  S.posts.filter(p => effTags(p).length === 0).forEach(p =>
+    warnings.push({ lv:"warn", msg:`「${esc((p.content||p.id).slice(0,20))}…」에 해시태그가 없어 탐색 그래프에서 고립됩니다.` }));
+
+  let h = `<div class="card">
+    <div class="row" style="align-items:center">
+      <h2 style="margin:0">시작 게시글</h2>
+      <select style="width:320px" onchange="App.setStart(this.value)">
+        <option value="">— 선택 —</option>
+        ${S.posts.map(p => `<option value="${p.id}" ${p.id===S.startPostId?"selected":""}>
+          ${esc((profById(p.authorId)||{}).name || "?")} · ${esc((p.content||"").slice(0,24))}</option>`).join("")}
+      </select>
+      <span class="muted" style="font-size:12px">홉 수는 해시태그(태그 필드 + 본문·댓글 인라인 태그)를 공유하는 게시글 간 이동으로 계산됩니다 (BFS 최단거리).</span>
+    </div>
+  </div>`;
+
+  /* 홉 레벨 맵 */
+  let levels = "";
+  for (let lv = 0; lv <= maxHop; lv++){
+    const ps = S.posts.filter(p => hops[p.id] === lv);
+    levels += `<div class="hop-row">
+      <div class="hop-label">hop ${lv}</div>
+      <div class="hop-chips">
+        ${ps.length ? ps.map(p => `
+          <div class="hop-chip ${p.isClue?"clue":""}">
+            <span style="color:${(profById(p.authorId)||{}).color || "var(--muted)"};font-weight:700">${esc((profById(p.authorId)||{}).name || "?")}</span>
+            <span>${esc((p.content||p.id).slice(0,16))}${(p.content||"").length>16?"…":""}</span>
+            ${p.isClue ? `<span class="mono" style="color:var(--red);font-size:11px;font-weight:700">${esc(p.clueEvent)}</span>` : ""}
+          </div>`).join("") : '<span class="muted" style="font-size:12px">없음</span>'}
+      </div>
+    </div>`;
+  }
+  if (unreachable.length){
+    levels += `<div class="hop-row">
+      <div class="hop-label iso">고립</div>
+      <div class="hop-chips">
+        ${unreachable.map(p => `<div class="hop-chip iso">${esc((profById(p.authorId)||{}).name || "?")} · ${esc((p.content||p.id).slice(0,16))}</div>`).join("")}
+      </div>
+    </div>`;
+  }
+  h += `<div class="card"><h2>단서 경로 맵</h2>${levels}</div>`;
+
+  /* C1~C5 커버리지 */
+  h += `<div class="card"><h2>대화 이벤트별 단서 커버리지 (C1–C5)</h2><div class="cov-grid">
+    ${C_EVENTS.map(ev => {
+      const list = S.posts.filter(p => p.isClue && p.clueEvent === ev);
+      return `<div class="cov-card ${list.length?"":"empty"}">
+        <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+          <span class="mono" style="font-weight:700;color:${list.length?"var(--blue)":"var(--amber)"}">${ev}</span>
+          <span class="muted" style="font-size:12px">단서 ${list.length}개</span>
+        </div>
+        ${list.map(p => `<div style="font-size:12px;margin-bottom:3px">· ${esc(p.clueNote || (p.content||"").slice(0,20))}
+          <span class="mono muted">(hop ${(p.id in hops) ? hops[p.id] : "×"}${(p.cluePhrases||[]).length ? " · 문구 "+(p.cluePhrases||[]).length : ""})</span></div>`).join("")}
+        ${list.length ? "" : '<div class="warn" style="font-size:12px">연결된 단서 없음</div>'}
+      </div>`;
+    }).join("")}
+  </div></div>`;
+
+  /* 해시태그 그래프 */
+  h += `<div class="card"><h2>해시태그 그래프 (${Object.keys(tm).length})</h2>
+    ${Object.entries(tm).sort((a,b) => b[1].length - a[1].length).map(([t, ps]) => `
+      <div style="display:flex;gap:10px;align-items:center;font-size:13px;flex-wrap:wrap;margin-bottom:6px">
+        <span class="tag">#${esc(t)}</span>
+        <span class="mono" style="font-size:12px;font-weight:700;color:${ps.length>1?"var(--green)":"var(--amber)"}">${ps.length}개 연결</span>
+        <span class="muted" style="font-size:12px">${ps.map(p => esc((profById(p.authorId)||{}).name || "?") + "·" + esc((p.content||p.id).slice(0,10))).join("  /  ")}</span>
+      </div>`).join("") || '<span class="muted" style="font-size:13px">해시태그가 아직 없습니다.</span>'}
+  </div>`;
+
+  /* 경고 */
+  h += `<div class="card"><h2>검증 경고 (${warnings.length})</h2>
+    ${warnings.length ? warnings.map(w => `<div class="${w.lv}" style="font-size:13px;margin-bottom:5px">${w.lv==="err"?"⛔":"⚠"} ${w.msg}</div>`).join("")
+      : '<div class="ok" style="font-size:13px">✓ 모든 단서가 도달 가능하고, 고립된 태그가 없습니다.</div>'}
+  </div>`;
+
+  return h;
+}
+
+/* ── 미리보기 탭 (인스타그램 스타일) ── */
+function renderPreview(){
+  const hops = computeHops();
+  let shown = S.posts.slice().sort((a,b) => String(b.date||"").localeCompare(String(a.date||"")));
+  let title = "";
+  if (P.view.mode === "tag"){ shown = shown.filter(p => effTags(p).includes(P.view.tag)); title = "#"+P.view.tag; }
+  if (P.view.mode === "profile"){
+    shown = shown.filter(p => p.authorId === P.view.profileId);
+    title = (profById(P.view.profileId)||{}).handle || "?";
+  }
+
+  /* 상단바: 홈이면 로고, 아니면 뒤로가기+타이틀 */
+  const bar = P.view.mode === "feed"
+    ? `<span class="script" style="font-size:22px">Instory</span>
+       <span style="margin-left:auto;font-size:17px">♡</span><span style="font-size:17px">✈</span>
+       <span class="mono muted" style="font-size:11px;margin-left:6px">이동 ${P.tagJumps}회</span>`
+    : `<button class="back-btn" onclick="App.pvBack()">‹</button>
+       <span style="font-weight:700;font-size:15px">${esc(title)}</span>
+       <span class="mono muted" style="margin-left:auto;font-size:11px">이동 ${P.tagJumps}회</span>`;
+
+  let profileHead = "";
+  if (P.view.mode === "profile"){
+    const pr = profById(P.view.profileId);
+    if (pr) profileHead = `
+      <div class="pf-head">
+        ${avatarHtml(pr, 64, true)}
+        <div class="pf-stats">
+          <div><b>${S.posts.filter(p => p.authorId === pr.id).length}</b><span>게시물</span></div>
+          <div><b>${pr.followers}</b><span>팔로워</span></div>
+          <div><b>${pr.following}</b><span>팔로잉</span></div>
+        </div>
+      </div>
+      <div class="pf-bio"><b>${esc(pr.name)}</b><br><span class="muted">${esc(pr.bio)}</span></div>`;
+  }
+
+  const feed = shown.map(p => {
+    const author = profById(p.authorId);
+    const hop = (p.id in hops) ? hops[p.id] : null;
+    const cmts = p.comments || [];
+    const phrases = p.cluePhrases || [];
+    const foundN = (P.foundClues[p.id] || new Set()).size;
+    return `<article class="feed-post">
+      ${(P.showClues && p.isClue) ? `<div style="position:absolute;top:10px;right:12px;z-index:2"><span class="clue-badge">단서 ${esc(p.clueEvent||"?")}${phrases.length ? " · "+foundN+"/"+phrases.length : ""}</span></div>` : ""}
+
+      <div class="fp-head" onclick="App.pvGoProfile('${p.authorId}')">
+        ${avatarHtml(author, 32, true)}
+        <div>
+          <div style="font-weight:700;font-size:13px">${esc((author||{}).handle || "?")}
+            ${(p.id===S.startPostId && P.showClues) ? '<span class="warn">★</span>' : ""}
+            ${(P.showClues && hop !== null) ? `<span class="mono" style="color:var(--blue);font-size:11px;font-weight:700"> hop${hop}</span>` : ""}
+          </div>
+          <div class="muted" style="font-size:11px">${esc((author||{}).name || "")}</div>
+        </div>
+        <span class="muted" style="margin-left:auto;font-size:16px;letter-spacing:1px">···</span>
+      </div>
+
+      <div class="fp-img"><span class="ico">📷</span>${p.imageDesc ? esc(p.imageDesc) : '<span class="muted">이미지 미정</span>'}</div>
+
+      <div class="fp-actions">
+        <span>♡</span><span>💬</span><span>✈</span>
+        <span class="save">🔖</span>
+      </div>
+      <div class="fp-likes">좋아요 ${p.likes}개</div>
+      <div class="fp-caption"><b>${esc((author||{}).handle || "?")}</b><span class="fp-body" data-post="${p.id}">${captionHtml(p)}</span></div>
+      ${(p.hashtags||[]).length ? `<div class="fp-tags">
+        ${(p.hashtags||[]).map(t => tagSpan(t)).join("")}
+      </div>` : ""}
+      ${cmts.length ? `<div class="fp-more" onclick="App.pvToggleComments('${p.id}')">
+        ${P.openComments[p.id] ? "댓글 접기" : "댓글 " + cmts.length + "개 모두 보기"}</div>` : ""}
+      ${P.openComments[p.id] ? cmts.map(c => `
+        <div class="fp-comment"><b>${esc(c.author)}</b> ${commentHtml(c.text)}
+          <span class="muted" style="font-size:11px"> 좋아요 ${c.likes}개</span></div>`).join("") : ""}
+      <div class="fp-date">${esc(p.date)}</div>
+    </article>`;
+  }).join("") || `<div class="muted" style="padding:30px;text-align:center;font-size:13px">이 화면에 표시할 게시글이 없습니다.</div>`;
+
+  const historyList = P.history.concat([P.view]).map((v, i) => {
+    const label = v.mode === "feed" ? "홈 피드" : v.mode === "tag" ? "#"+v.tag : "@"+((profById(v.profileId)||{}).handle || "?");
+    const cur = i === P.history.length;
+    return `<div style="color:${cur?"var(--blue)":"var(--muted)"};font-weight:${cur?"700":"400"}">${i}. ${esc(label)}</div>`;
+  }).join("");
+
+  /* 단서 문구 전체 진행도 */
+  let totalPhrases = 0, totalFound = 0;
+  S.posts.forEach(p => {
+    const n = (p.cluePhrases||[]).filter(ph => (p.content||"").indexOf(ph) !== -1).length;
+    totalPhrases += n;
+    totalFound += Math.min(n, (P.foundClues[p.id] || new Set()).size);
+  });
+  const visitedTags = Object.keys(P.visited);
+
+  return `<div class="preview-wrap">
+    <div class="phone">
+      <div class="phone-bar">${bar}</div>
+      ${profileHead}
+      <div class="phone-feed">${feed}</div>
+      <div class="phone-tabbar"><span>🏠</span><span>🔍</span><span>➕</span><span>🎬</span><span>👤</span></div>
+    </div>
+
+    <div class="side">
+      <div class="card" style="margin:0">
+        <h3>플레이테스트 컨트롤</h3>
+        <label class="inline" style="margin-bottom:10px">
+          <input type="checkbox" ${P.showClues?"checked":""} onchange="App.pvToggleClues(this.checked)">
+          기획자 뷰 (단서·홉 표시)</label>
+        <button class="btn sm" style="width:100%" onclick="App.pvReset()">처음으로 리셋</button>
+        <p class="muted" style="font-size:12px;line-height:1.6;margin:10px 0 0">
+          해시태그를 탭하면 태그 피드로 이동하고, 방문한 태그는 회색으로 바뀝니다.
+          본문을 드래그해 단서 문구를 찾으면 형광펜으로 표시됩니다.</p>
+      </div>
+      <div class="card" style="margin:0">
+        <h3>탐색 진행도</h3>
+        <div style="font-size:13px;line-height:1.9">
+          <div>단서 문구 <b style="color:var(--red)">${totalFound}</b> / ${totalPhrases} 발견</div>
+          <div>방문한 태그 <b style="color:var(--blue)">${visitedTags.length}</b>개
+            ${visitedTags.length ? `<div class="muted" style="font-size:12px">${visitedTags.map(t => "#"+esc(t)).join(" ")}</div>` : ""}</div>
+        </div>
+      </div>
+      <div class="card" style="margin:0">
+        <h3>이동 기록</h3>
+        <div class="mono" style="font-size:12px;line-height:1.8">${historyList}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+/* ═══════════ 시작 ═══════════ */
+(async function init(){
+  await loadSaved();
+  render();
+})();
+</script>
+</body>
+</html>

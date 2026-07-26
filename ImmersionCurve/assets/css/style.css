@@ -1,4 +1,4 @@
-/* ── 몰입 곡선 에디터 — style.css v1.0.0 ── */
+/* ── 몰입 곡선 에디터 — style.css v1.3.0 ── */
   :root {
     color-scheme: light;
     --surface-1: #fcfcfb;
@@ -165,7 +165,10 @@
     color: var(--text-primary); font-family: inherit; min-width: 0;
     padding: 2px 4px; border-radius: 4px;
   }
+  .curve-name:hover:not(:focus) { box-shadow: inset 0 -1px 0 var(--axis); } /* 수정 가능함을 암시 */
   .curve-name:focus { outline: 1px solid var(--series-1); background: var(--surface-1); }
+  .curve-note { margin-top: 8px; line-height: 1.55; }
+  .curve-note code { font-family: inherit; font-size: 11px; color: var(--text-secondary); }
   .icon-btn {
     border: none; background: transparent; box-shadow: none;
     padding: 3px 6px; font-size: 13px; color: var(--text-muted);
