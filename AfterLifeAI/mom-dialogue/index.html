@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<!-- index.html — 사후관리 AI · 엄마 대화 시뮬레이터 (Ch.0) | version: 1.0.0 -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 고인 복원 대화 시뮬레이터 - Chapter 0</title>
+
+<!-- 스타일시트 -->
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<div class="simulator-container">
+  <!-- ── 상단 상태바 ── -->
+  <div class="status-header">
+    <div class="user-info">
+      <div class="avatar">👩‍👦</div>
+      <div class="user-details">
+        <h3>엄마</h3>
+        <p>● 접속 중</p>
+      </div>
+    </div>
+    <div class="gauge-box">
+      <div class="gauge-label">의심 수치: <span id="suspicion-text">0%</span></div>
+      <div class="gauge-bar-bg">
+        <div class="gauge-bar-fill" id="suspicion-bar"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 채팅 로그 영역 ── -->
+  <div class="chat-area" id="chat-area">
+    <div class="sys-notice">🔔 새로운 메신저 메시지가 도착했습니다: <strong>엄마</strong></div>
+  </div>
+
+  <!-- ── 인터랙션 컨트롤 영역 ── -->
+  <div class="choice-container" id="control-area">
+    <!-- JS로 동적 구성 -->
+  </div>
+</div>
+
+<!-- 앱 로직 -->
+<script src="assets/js/app.js"></script>
+
+</body>
+</html>
