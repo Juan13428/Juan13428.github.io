@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<!-- index.html — 사후관리 AI · Ch.0 튜토리얼 시뮬레이터 | version: 1.0.0 -->
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>사후관리 AI (Post-Mortem AI) - Ch.0 튜토리얼 시뮬레이터</title>
+
+<!-- 스타일시트 -->
+<link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<div class="game-container">
+  <!-- ── 스마트폰 UI (좌측) ── -->
+  <div class="phone-frame">
+    <!-- 헤더 -->
+    <div class="phone-header">
+      <div class="status-bar">
+        <span>POST-MORTEM AI v1.0</span>
+        <span id="system-status">ACTIVE</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 10px; color: #cbd5e1;">
+        <span>의심도 (SUSPICION)</span>
+        <span id="suspicion-val">10%</span>
+      </div>
+      <div class="suspicion-meter">
+        <div class="suspicion-fill" id="suspicion-bar"></div>
+      </div>
+    </div>
+
+    <!-- 화면 탭 -->
+    <div class="phone-content">
+      <!-- 1. 메신저 화면 -->
+      <div class="tab-screen active" id="tab-chat">
+        <div class="chat-messages" id="chat-box">
+          <div class="msg-system">대화 세션이 시작되었습니다.</div>
+          <div class="msg sister">오빠! 자? 자는 거 아니지?</div>
+          <div class="msg sister">나 방금 피드에 올린 게시글에 '좋아요' 좀 눌러줘!! 빨리빨리!! 🔥</div>
+        </div>
+      </div>
+
+      <!-- 2. 피드 화면 -->
+      <div class="tab-screen" id="tab-feed">
+        <div class="feed-card">
+          <div class="feed-user">@sister_yoon</div>
+          <div class="feed-img">🎮✨</div>
+          <div class="feed-text">오늘 신상 랭크전 연승 달성! 다들 좋아요 누르고 기운 받아가라~</div>
+          <button class="like-btn" id="like-btn" onclick="handleLike()">
+            <span id="like-heart">🤍</span> 좋아요 <span id="like-count">12</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 3. 북마크 화면 -->
+      <div class="tab-screen" id="tab-bookmark">
+        <div class="bookmark-item">
+          <strong>[게임 이벤트 쿠폰 목록]</strong><br>
+          <span style="color:#94a3b8; font-size:11px;">마우스로 쿠폰 코드를 드래그(선택)하여 AI 메모리에 저장하세요!</span><br><br>
+          2026 영웅대전 특별 이벤트 쿠폰:<br>
+          <span class="code-text" id="coupon-code">GAME-2026-HERO</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 하단 내비게이션 -->
+    <div class="phone-nav">
+      <button class="nav-btn active" onclick="switchTab('chat')" id="nav-chat">
+        💬 메신저
+      </button>
+      <button class="nav-btn" onclick="switchTab('feed')" id="nav-feed" style="position:relative;">
+        📷 피드
+        <span class="badge" id="feed-badge">!</span>
+      </button>
+      <button class="nav-btn" onclick="switchTab('bookmark')" id="nav-bookmark">
+        🔖 북마크
+      </button>
+    </div>
+  </div>
+
+  <!-- ── AI HUD & 메모리 (우측) ── -->
+  <div class="hud-frame">
+    <div class="hud-title">
+      <span>AI SYSTEM CONTROL HUD</span>
+      <span style="font-size: 12px; color: var(--text-muted);">TARGET: 박지훈 (사망)</span>
+    </div>
+
+    <!-- 퀘스트 안내 -->
+    <div class="quest-box">
+      <h4 id="quest-step">STEP 1: 피드 게시물 확인</h4>
+      <p id="quest-desc">여동생의 요청에 따라 피드 탭으로 이동하여 최신 게시물에 '좋아요'를 누르십시오.</p>
+    </div>
+
+    <!-- 수집된 단서 -->
+    <div class="clue-box">
+      <h4>🔍 수집된 데이터 메모리 (단서함)</h4>
+      <div class="clue-list" id="clue-list">
+        <div style="font-size: 11px; color: #475569; text-align: center; margin-top: 20px;" id="empty-clue-msg">
+          드래그하여 수집한 단서가 이곳에 기록됩니다.
+        </div>
+      </div>
+    </div>
+
+    <!-- 액션 -->
+    <div class="action-area">
+      <button class="send-btn" id="action-btn" disabled onclick="handleAction()">
+        단서 수집 필요
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- 앱 로직 -->
+<script src="assets/js/app.js"></script>
+
+</body>
+</html>

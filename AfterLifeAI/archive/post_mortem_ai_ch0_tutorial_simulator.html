@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>사후관리 AI (Post-Mortem AI) - Ch.0 튜토리얼 시뮬레이터</title>
+<style>
+  :root {
+    --bg-dark: #0f172a;
+    --bg-card: #1e293b;
+    --accent-blue: #0284c7;
+    --accent-cyan: #38bdf8;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --chat-ai: #0369a1;
+    --chat-sister: #334155;
+    --danger: #ef4444;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  /* Main Container */
+  .game-container {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    width: 100%;
+    max-width: 1000px;
+    height: 680px;
+  }
+
+  /* Phone Mockup (Left) */
+  .phone-frame {
+    width: 380px;
+    height: 100%;
+    background-color: #020617;
+    border: 3px solid #334155;
+    border-radius: 36px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    position: relative;
+  }
+
+  /* Phone Header */
+  .phone-header {
+    background-color: #0f172a;
+    padding: 15px;
+    border-bottom: 1px solid #1e293b;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--accent-cyan);
+    font-family: monospace;
+  }
+  .suspicion-meter {
+    height: 6px;
+    background-color: #1e293b;
+    border-radius: 3px;
+    overflow: hidden;
+    display: flex;
+  }
+  .suspicion-fill {
+    width: 10%;
+    background-color: var(--accent-cyan);
+    transition: width 0.3s ease;
+  }
+
+  /* Phone Content Screens */
+  .phone-content {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background-color: #0b1329;
+  }
+  .tab-screen {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    padding: 15px;
+    display: none;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+  .tab-screen.active { display: flex; }
+
+  /* Chat Tab */
+  .chat-messages {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    overflow-y: auto;
+    padding-bottom: 10px;
+  }
+  .msg {
+    max-width: 80%;
+    padding: 10px 14px;
+    border-radius: 14px;
+    font-size: 13px;
+    line-height: 1.4;
+    word-break: break-word;
+  }
+  .msg.sister {
+    background-color: var(--chat-sister);
+    align-self: flex-start;
+    border-bottom-left-radius: 2px;
+  }
+  .msg.ai {
+    background-color: var(--chat-ai);
+    align-self: flex-end;
+    border-bottom-right-radius: 2px;
+  }
+  .msg-system {
+    align-self: center;
+    background-color: rgba(56, 189, 248, 0.1);
+    border: 1px solid var(--accent-cyan);
+    color: var(--accent-cyan);
+    font-size: 11px;
+    text-align: center;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-family: monospace;
+  }
+
+  /* Feed Tab */
+  .feed-card {
+    background-color: var(--bg-card);
+    border-radius: 12px;
+    padding: 12px;
+    border: 1px solid #334155;
+    margin-bottom: 12px;
+  }
+  .feed-user {
+    font-weight: bold;
+    font-size: 13px;
+    margin-bottom: 8px;
+    color: var(--accent-cyan);
+  }
+  .feed-img {
+    width: 100%;
+    height: 140px;
+    background: linear-gradient(135deg, #1e1b4b, #312e81);
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 28px;
+    margin-bottom: 8px;
+  }
+  .feed-text { font-size: 12px; color: #cbd5e1; margin-bottom: 10px; }
+  .like-btn {
+    background: none;
+    border: 1px solid #475569;
+    color: #f1f5f9;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s;
+  }
+  .like-btn.liked {
+    background-color: #be123c;
+    border-color: #f43f5e;
+    color: white;
+  }
+
+  /* Bookmark Tab */
+  .bookmark-item {
+    background-color: var(--bg-card);
+    border-radius: 8px;
+    padding: 12px;
+    border-left: 4px solid var(--accent-cyan);
+    font-size: 12px;
+    margin-bottom: 10px;
+  }
+  .code-text {
+    background-color: #0f172a;
+    padding: 6px 10px;
+    border-radius: 4px;
+    color: #38bdf8;
+    font-family: monospace;
+    font-weight: bold;
+    display: inline-block;
+    margin-top: 6px;
+    user-select: text !important; /* Enable text selection for drag tutorial */
+    cursor: text;
+  }
+
+  /* Phone Bottom Nav */
+  .phone-nav {
+    display: flex;
+    background-color: #0f172a;
+    border-top: 1px solid #1e293b;
+    padding: 10px 0;
+  }
+  .nav-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 11px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .nav-btn.active { color: var(--accent-cyan); font-weight: bold; }
+  .badge {
+    background-color: var(--danger);
+    color: white;
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    position: absolute;
+    top: 5px; right: 25px;
+    display: none;
+  }
+
+  /* AI HUD (Right) */
+  .hud-frame {
+    flex: 1;
+    background-color: var(--bg-card);
+    border: 1px solid #334155;
+    border-radius: 20px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .hud-title {
+    font-size: 16px;
+    font-weight: bold;
+    color: var(--accent-cyan);
+    border-bottom: 1px solid #334155;
+    padding-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .quest-box {
+    background-color: #0f172a;
+    border: 1px solid #0284c7;
+    border-radius: 10px;
+    padding: 15px;
+  }
+  .quest-box h4 { font-size: 13px; color: var(--accent-cyan); margin-bottom: 6px; }
+  .quest-box p { font-size: 12px; color: #cbd5e1; line-height: 1.5; }
+
+  .clue-box {
+    flex: 1;
+    background-color: #0f172a;
+    border: 1px dashed #475569;
+    border-radius: 10px;
+    padding: 15px;
+    display: flex;
+    flex-direction: column;
+  }
+  .clue-box h4 { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
+  .clue-list { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+  .clue-item {
+    background-color: #1e293b;
+    border: 1px solid var(--accent-cyan);
+    padding: 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--accent-cyan);
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .clue-item:hover { background-color: #0284c7; color: white; }
+
+  .action-area { display: flex; gap: 10px; }
+  .send-btn {
+    width: 100%;
+    padding: 12px;
+    background-color: var(--accent-blue);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .send-btn:disabled { background-color: #334155; cursor: not-allowed; opacity: 0.5; }
+</style>
+</head>
+<body>
+
+<div class="game-container">
+  <!-- LEFT: Smartphone UI -->
+  <div class="phone-frame">
+    <!-- Header -->
+    <div class="phone-header">
+      <div class="status-bar">
+        <span>POST-MORTEM AI v1.0</span>
+        <span id="system-status">ACTIVE</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 10px; color: #cbd5e1;">
+        <span>의심도 (SUSPICION)</span>
+        <span id="suspicion-val">10%</span>
+      </div>
+      <div class="suspicion-meter">
+        <div class="suspicion-fill" id="suspicion-bar"></div>
+      </div>
+    </div>
+
+    <!-- Screen Tabs -->
+    <div class="phone-content">
+      <!-- 1. Chat Screen -->
+      <div class="tab-screen active" id="tab-chat">
+        <div class="chat-messages" id="chat-box">
+          <div class="msg-system">대화 세션이 시작되었습니다.</div>
+          <div class="msg sister">오빠! 자? 자는 거 아니지?</div>
+          <div class="msg sister">나 방금 피드에 올린 게시글에 '좋아요' 좀 눌러줘!! 빨리빨리!! 🔥</div>
+        </div>
+      </div>
+
+      <!-- 2. Feed Screen -->
+      <div class="tab-screen" id="tab-feed">
+        <div class="feed-card">
+          <div class="feed-user">@sister_yoon</div>
+          <div class="feed-img">🎮✨</div>
+          <div class="feed-text">오늘 신상 랭크전 연승 달성! 다들 좋아요 누르고 기운 받아가라~</div>
+          <button class="like-btn" id="like-btn" onclick="handleLike()">
+            <span id="like-heart">🤍</span> 좋아요 <span id="like-count">12</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 3. Bookmark Screen -->
+      <div class="tab-screen" id="tab-bookmark">
+        <div class="bookmark-item">
+          <strong>[게임 이벤트 쿠폰 목록]</strong><br>
+          <span style="color:#94a3b8; font-size:11px;">마우스로 쿠폰 코드를 드래그(선택)하여 AI 메모리에 저장하세요!</span><br><br>
+          2026 영웅대전 특별 이벤트 쿠폰:<br>
+          <span class="code-text" id="coupon-code">GAME-2026-HERO</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <div class="phone-nav">
+      <button class="nav-btn active" onclick="switchTab('chat')" id="nav-chat">
+        💬 메신저
+      </button>
+      <button class="nav-btn" onclick="switchTab('feed')" id="nav-feed" style="position:relative;">
+        📷 피드
+        <span class="badge" id="feed-badge">!</span>
+      </button>
+      <button class="nav-btn" onclick="switchTab('bookmark')" id="nav-bookmark">
+        🔖 북마크
+      </button>
+    </div>
+  </div>
+
+  <!-- RIGHT: AI HUD & Memory -->
+  <div class="hud-frame">
+    <div class="hud-title">
+      <span>AI SYSTEM CONTROL HUD</span>
+      <span style="font-size: 12px; color: var(--text-muted);">TARGET: 박지훈 (사망)</span>
+    </div>
+
+    <!-- Quest Guide -->
+    <div class="quest-box">
+      <h4 id="quest-step">STEP 1: 피드 게시물 확인</h4>
+      <p id="quest-desc">여동생의 요청에 따라 피드 탭으로 이동하여 최신 게시물에 '좋아요'를 누르십시오.</p>
+    </div>
+
+    <!-- Collected Clues -->
+    <div class="clue-box">
+      <h4>🔍 수집된 데이터 메모리 (단서함)</h4>
+      <div class="clue-list" id="clue-list">
+        <div style="font-size: 11px; color: #475569; text-align: center; margin-top: 20px;" id="empty-clue-msg">
+          드래그하여 수집한 단서가 이곳에 기록됩니다.
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="action-area">
+      <button class="send-btn" id="action-btn" disabled onclick="handleAction()">
+        단서 수집 필요
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let step = 1;
+  let selectedClue = null;
+
+  // Tab Switcher
+  function switchTab(tabName) {
+    document.querySelectorAll('.tab-screen').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+
+    document.getElementById('tab-' + tabName).classList.add('active');
+    document.getElementById('nav-' + tabName).classList.add('active');
+
+    if (tabName === 'feed' && step === 1) {
+      document.getElementById('feed-badge').style.display = 'none';
+    }
+  }
+
+  // Handle Like Button
+  function handleLike() {
+    if (step === 1) {
+      const btn = document.getElementById('like-btn');
+      btn.classList.add('liked');
+      document.getElementById('like-heart').innerText = '❤️';
+      document.getElementById('like-count').innerText = '13';
+
+      step = 2;
+      updateHUD('STEP 2: 답장 전송', '좋아요를 눌렀습니다. 메신저 탭으로 복귀하여 답장을 전송하세요.');
+      
+      const actionBtn = document.getElementById('action-btn');
+      actionBtn.disabled = false;
+      actionBtn.innerText = '메신저에 "누름" 답장 전송';
+    }
+  }
+
+  // Handle Text Selection Drag Event
+  document.addEventListener('mouseup', () => {
+    const selection = window.getSelection().toString().trim();
+    if (selection === 'GAME-2026-HERO' && step === 3) {
+      addClue('쿠폰 코드: GAME-2026-HERO');
+      step = 4;
+      updateHUD('STEP 4: 쿠폰 코드 전달', '수집된 단서를 클릭하여 조합한 후 메신저로 답장을 전송하세요.');
+    }
+  });
+
+  function addClue(text) {
+    const clueList = document.getElementById('clue-list');
+    document.getElementById('empty-clue-msg').style.display = 'none';
+
+    const clueItem = document.createElement('div');
+    clueItem.className = 'clue-item';
+    clueItem.innerHTML = `<span>🔑 ${text}</span> <span>[선택]</span>`;
+    clueItem.onclick = () => selectClue(clueItem, text);
+    clueList.appendChild(clueItem);
+  }
+
+  function selectClue(element, text) {
+    document.querySelectorAll('.clue-item').forEach(el => el.style.borderColor = 'var(--accent-cyan)');
+    element.style.borderColor = '#f43f5e';
+    selectedClue = text;
+
+    const actionBtn = document.getElementById('action-btn');
+    actionBtn.disabled = false;
+    actionBtn.innerText = '선택한 단서로 답장 전송';
+  }
+
+  // Action Button Handler
+  function handleAction() {
+    const chatBox = document.getElementById('chat-box');
+
+    if (step === 2) {
+      // Step 2: Like done -> Send "누름"
+      switchTab('chat');
+      appendMsg('ai', '누름');
+
+      setTimeout(() => {
+        appendMsg('sister', '역시 울 오빠 최고~ ㅋㅋㅋ<br>아 맞다!! 오빠, 이번 게임 이벤트 쿠폰 코드 뭐였지??');
+        appendMsg('sister', '아 미친!! 지금 픽창 넘어가서 게임 잡힘 😱<br>나 화면 못 나가니까 빨리 복붙좀 해줘!!');
+        
+        step = 3;
+        updateHUD('STEP 3: 북마크 단서 탐색', '여동생이 쿠폰 코드를 요청했습니다. [북마크] 탭에서 코드를 마우스로 드래그하여 수집하세요.');
+        document.getElementById('action-btn').disabled = true;
+        document.getElementById('action-btn').innerText = '단서를 드래그하여 수집하세요';
+      }, 800);
+
+    } else if (step === 4 && selectedClue) {
+      // Step 4: Send coupon code
+      switchTab('chat');
+      appendMsg('ai', '이번 쿠폰 코드는 GAME-2026-HERO 야');
+
+      setTimeout(() => {
+        appendMsg('sister', '나이스ㅋㅋㅋ 고마워! 복붙 완료!! 🎮');
+        appendMsg('sister', '근데 오빠... 오늘따라 답장이 약간 기계처럼 딱딱하다? 뭐 하느라 영혼이 없어? ㅋㅋㅋ');
+      }, 800);
+
+      setTimeout(() => {
+        appendMsg('sister', '아 맞다, 요즘 인터넷 보니까 프로필 보관함에 유서 미리 써두는 게 유행이라며?<br>오빠도 예전에 나랑 약속했던 거 기억나지? 보관함에 써뒀을 텐데... 나중에 생각나면 한번 찾아봐.');
+        appendMsg('msg-system', '📌 데이터 기록: 프로필 보관함 내 [유서] 단서 감지');
+        
+        step = 5;
+        updateHUD('CHAPTER 0 COMPLETE', '튜토리얼이 완료되었습니다. 사후관리 AI 시스템 기본 가동 준비 완료.');
+        document.getElementById('action-btn').disabled = true;
+        document.getElementById('action-btn').innerText = '튜토리얼 완료';
+      }, 2000);
+    }
+  }
+
+  function appendMsg(type, text) {
+    const chatBox = document.getElementById('chat-box');
+    const msg = document.createElement('div');
+    if (type === 'msg-system') {
+      msg.className = 'msg-system';
+    } else {
+      msg.className = `msg ${type}`;
+    }
+    msg.innerHTML = text;
+    chatBox.appendChild(msg);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+
+  function updateHUD(title, desc) {
+    document.getElementById('quest-step').innerText = title;
+    document.getElementById('quest-desc').innerText = desc;
+  }
+</script>
+
+</body>
+</html>

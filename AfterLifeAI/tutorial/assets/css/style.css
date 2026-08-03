@@ -1,0 +1,308 @@
+/* ================================================================
+   assets/css/style.css — 사후관리 AI · Ch.0 튜토리얼 시뮬레이터
+   version: 1.0.0
+   ================================================================ */
+
+/* ── 디자인 토큰 (CSS 변수) ── */
+:root {
+  --bg-dark: #0f172a;
+  --bg-card: #1e293b;
+  --accent-blue: #0284c7;
+  --accent-cyan: #38bdf8;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --chat-ai: #0369a1;
+  --chat-sister: #334155;
+  --danger: #ef4444;
+}
+
+/* ── 리셋 & 베이스 레이아웃 ── */
+* { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: var(--bg-dark);
+  color: var(--text-main);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+/* ── 전체 컨테이너 ── */
+.game-container {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  width: 100%;
+  max-width: 1000px;
+  height: 680px;
+}
+
+/* ── 스마트폰 목업 (좌측) ── */
+.phone-frame {
+  width: 380px;
+  height: 100%;
+  background-color: #020617;
+  border: 3px solid #334155;
+  border-radius: 36px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+  position: relative;
+}
+
+/* ── 스마트폰 헤더 (상태바 · 의심도 게이지) ── */
+.phone-header {
+  background-color: #0f172a;
+  padding: 15px;
+  border-bottom: 1px solid #1e293b;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.status-bar {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--accent-cyan);
+  font-family: monospace;
+}
+.suspicion-meter {
+  height: 6px;
+  background-color: #1e293b;
+  border-radius: 3px;
+  overflow: hidden;
+  display: flex;
+}
+.suspicion-fill {
+  width: 10%;
+  background-color: var(--accent-cyan);
+  transition: width 0.3s ease;
+}
+
+/* ── 스마트폰 콘텐츠 화면 (탭 전환 컨테이너) ── */
+.phone-content {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background-color: #0b1329;
+}
+.tab-screen {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  padding: 15px;
+  display: none;
+  flex-direction: column;
+  overflow-y: auto;
+}
+.tab-screen.active { display: flex; }
+
+/* ── 메신저 탭 ── */
+.chat-messages {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  padding-bottom: 10px;
+}
+.msg {
+  max-width: 80%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.4;
+  word-break: break-word;
+}
+.msg.sister {
+  background-color: var(--chat-sister);
+  align-self: flex-start;
+  border-bottom-left-radius: 2px;
+}
+.msg.ai {
+  background-color: var(--chat-ai);
+  align-self: flex-end;
+  border-bottom-right-radius: 2px;
+}
+.msg-system {
+  align-self: center;
+  background-color: rgba(56, 189, 248, 0.1);
+  border: 1px solid var(--accent-cyan);
+  color: var(--accent-cyan);
+  font-size: 11px;
+  text-align: center;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-family: monospace;
+}
+
+/* ── 피드 탭 ── */
+.feed-card {
+  background-color: var(--bg-card);
+  border-radius: 12px;
+  padding: 12px;
+  border: 1px solid #334155;
+  margin-bottom: 12px;
+}
+.feed-user {
+  font-weight: bold;
+  font-size: 13px;
+  margin-bottom: 8px;
+  color: var(--accent-cyan);
+}
+.feed-img {
+  width: 100%;
+  height: 140px;
+  background: linear-gradient(135deg, #1e1b4b, #312e81);
+  border-radius: 8px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+.feed-text { font-size: 12px; color: #cbd5e1; margin-bottom: 10px; }
+.like-btn {
+  background: none;
+  border: 1px solid #475569;
+  color: #f1f5f9;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+}
+.like-btn.liked {
+  background-color: #be123c;
+  border-color: #f43f5e;
+  color: white;
+}
+
+/* ── 북마크 탭 ── */
+.bookmark-item {
+  background-color: var(--bg-card);
+  border-radius: 8px;
+  padding: 12px;
+  border-left: 4px solid var(--accent-cyan);
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+.code-text {
+  background-color: #0f172a;
+  padding: 6px 10px;
+  border-radius: 4px;
+  color: #38bdf8;
+  font-family: monospace;
+  font-weight: bold;
+  display: inline-block;
+  margin-top: 6px;
+  user-select: text !important; /* 드래그 튜토리얼을 위해 텍스트 선택 허용 */
+  cursor: text;
+}
+
+/* ── 스마트폰 하단 내비게이션 ── */
+.phone-nav {
+  display: flex;
+  background-color: #0f172a;
+  border-top: 1px solid #1e293b;
+  padding: 10px 0;
+}
+.nav-btn {
+  flex: 1;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.nav-btn.active { color: var(--accent-cyan); font-weight: bold; }
+.badge {
+  background-color: var(--danger);
+  color: white;
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  position: absolute;
+  top: 5px; right: 25px;
+  display: none;
+}
+
+/* ── AI HUD 패널 (우측) ── */
+.hud-frame {
+  flex: 1;
+  background-color: var(--bg-card);
+  border: 1px solid #334155;
+  border-radius: 20px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.hud-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--accent-cyan);
+  border-bottom: 1px solid #334155;
+  padding-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+}
+.quest-box {
+  background-color: #0f172a;
+  border: 1px solid #0284c7;
+  border-radius: 10px;
+  padding: 15px;
+}
+.quest-box h4 { font-size: 13px; color: var(--accent-cyan); margin-bottom: 6px; }
+.quest-box p { font-size: 12px; color: #cbd5e1; line-height: 1.5; }
+
+/* ── 수집된 단서함 ── */
+.clue-box {
+  flex: 1;
+  background-color: #0f172a;
+  border: 1px dashed #475569;
+  border-radius: 10px;
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+}
+.clue-box h4 { font-size: 13px; color: var(--text-muted); margin-bottom: 10px; }
+.clue-list { display: flex; flex-direction: column; gap: 8px; flex: 1; }
+.clue-item {
+  background-color: #1e293b;
+  border: 1px solid var(--accent-cyan);
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--accent-cyan);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.clue-item:hover { background-color: #0284c7; color: white; }
+
+/* ── 액션 버튼 영역 ── */
+.action-area { display: flex; gap: 10px; }
+.send-btn {
+  width: 100%;
+  padding: 12px;
+  background-color: var(--accent-blue);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.send-btn:disabled { background-color: #334155; cursor: not-allowed; opacity: 0.5; }
