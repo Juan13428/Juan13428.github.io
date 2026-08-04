@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<!-- index.html — 사후관리 AI · 0챕터 [갑작스러운 중재_1] 메신저 시뮬레이터 | version: 1.0.0 -->
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>0챕터 [갑작스러운 중재_1] 메신저 시뮬레이터</title>
+
+    <!-- 스타일시트 -->
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<div class="phone-container">
+    <!-- ── 상단 헤더: 고정 [처음부터] 다시 시작 버튼 ── -->
+    <div class="phone-header">
+        <div class="user-info">
+            <div class="avatar">지원</div>
+            <div class="user-details">
+                <div class="name">박지원 (여동생)</div>
+                <div class="sub">온라인</div>
+            </div>
+        </div>
+        <button class="header-restart-btn" onclick="resetGame()">🔄 처음부터</button>
+    </div>
+
+    <!-- ── AI 의심 수치 바 ── -->
+    <div class="ai-status-bar">
+        <span class="suspicion-label">의심 수치 (Risk Level)</span>
+        <div style="display: flex; align-items: center;">
+            <span class="suspicion-value" id="suspicion-text">15%</span>
+            <div class="progress-bar-bg">
+                <div class="progress-bar-fill" id="suspicion-bar"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── 스크롤 가능한 대화 영역 ── -->
+    <div class="chat-area" id="chat-area"></div>
+
+    <!-- ── 하단 선택지 영역 ── -->
+    <div class="choice-container" id="choice-container"></div>
+</div>
+
+<!-- 앱 로직 -->
+<script src="assets/js/app.js"></script>
+
+</body>
+</html>
