@@ -1,0 +1,365 @@
+/* ================================================================
+   assets/css/style.css — 사후관리 AI · 0챕터: 3주만의 답장
+   version: 1.0.0
+   ================================================================ */
+
+/* ── 디자인 토큰 (CSS 변수) ── */
+:root {
+    --bg-color: #0f111a;
+    --phone-bg: #1a1c29;
+    --chat-bg: #121420;
+    --user-msg: #3b82f6;
+    --ai-msg: #2d3748;
+    --sns-card-bg: #222638;
+    --accent-red: #ef4444;
+    --accent-green: #10b981;
+    --accent-gold: #f59e0b;
+    --text-main: #f3f4f6;
+    --text-muted: #9ca3af;
+    --border-color: #2e344e;
+}
+
+/* ── 리셋 & 베이스 레이아웃 ── */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    overflow-x: hidden;
+}
+
+/* ── 전체 컨테이너 레이아웃 ── */
+.simulator-container {
+    display: flex;
+    flex-direction: row;
+    gap: 20px;
+    max-width: 1000px;
+    width: 100%;
+    height: 850px;
+}
+
+/* ── 상태/피드 사이드 패널 ── */
+.side-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    height: 100%;
+}
+
+.status-card {
+    background: var(--phone-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+
+.status-title {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.suspicion-bar-bg {
+    width: 100%;
+    height: 12px;
+    background: #2a2e45;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-top: 6px;
+}
+
+.suspicion-bar-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--accent-green), var(--accent-gold), var(--accent-red));
+    transition: width 0.4s ease;
+}
+
+.feed-container {
+    flex: 1;
+    background: var(--phone-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 15px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+
+.feed-header {
+    font-size: 14px;
+    font-weight: bold;
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 8px;
+}
+
+.feed-item {
+    background: var(--sns-card-bg);
+    border-radius: 12px;
+    padding: 12px;
+    border: 1px solid rgba(255,255,255,0.05);
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.feed-author {
+    font-weight: bold;
+    color: #60a5fa;
+    margin-bottom: 4px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.feed-date {
+    font-weight: normal;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.feed-highlight {
+    border-left: 3px solid var(--accent-gold);
+    background: rgba(245, 158, 11, 0.08);
+}
+
+/* ── 모바일 폰 시뮬레이터 프레임 ── */
+.phone-frame {
+    flex: 1.2;
+    max-width: 450px;
+    background: var(--phone-bg);
+    border: 2px solid var(--border-color);
+    border-radius: 28px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 12px 32px rgba(0,0,0,0.5);
+    position: relative;
+}
+
+.phone-header {
+    background: #151724;
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #4b5563;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: white;
+    font-size: 16px;
+}
+
+.user-details .name {
+    font-weight: bold;
+    font-size: 15px;
+}
+
+.user-details .status {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.ai-badge {
+    background: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+/* ── 채팅 윈도우 영역 ── */
+.chat-area {
+    flex: 1;
+    background: var(--chat-bg);
+    padding: 15px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.chat-divider {
+    text-align: center;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin: 10px 0;
+    position: relative;
+}
+
+.chat-divider::before, .chat-divider::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    width: 30%;
+    height: 1px;
+    background: var(--border-color);
+}
+.chat-divider::before { left: 0; }
+.chat-divider::after { right: 0; }
+
+.message {
+    max-width: 80%;
+    padding: 10px 14px;
+    border-radius: 16px;
+    font-size: 14px;
+    line-height: 1.4;
+    word-wrap: break-word;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.message.received {
+    background: var(--ai-msg);
+    color: var(--text-main);
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+}
+
+.message.sent {
+    background: var(--user-msg);
+    color: white;
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+}
+
+.system-msg {
+    align-self: center;
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #fca5a5;
+    font-size: 12px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    text-align: center;
+    width: 90%;
+    margin: 6px 0;
+}
+
+/* ── 선택지 입력 영역 ── */
+.choices-area {
+    background: #151724;
+    padding: 15px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.choice-btn {
+    background: #26293b;
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+    padding: 12px;
+    border-radius: 10px;
+    text-align: left;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.choice-btn:hover {
+    background: #323750;
+    border-color: #4b5563;
+}
+
+/* ── 게임 오버 / 엔딩 오버레이 ── */
+.overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(15, 17, 26, 0.92);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 30px;
+    text-align: center;
+    z-index: 10;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+}
+
+.overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.ending-title {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 12px;
+}
+
+.ending-desc {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+.restart-btn {
+    background: var(--user-msg);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+/* ── 반응형: 좁은 화면에서 세로 스택 ── */
+@media (max-width: 800px) {
+    .simulator-container {
+        flex-direction: column;
+        height: auto;
+    }
+    .side-panel {
+        order: 2;
+    }
+    .phone-frame {
+        order: 1;
+        height: 600px;
+        max-width: 100%;
+    }
+}

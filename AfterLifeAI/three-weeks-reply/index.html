@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<!-- index.html — 사후관리 AI · 0챕터: 3주만의 답장 | version: 1.0.0 -->
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>사후관리 AI - 0챕터: 3주만의 답장</title>
+
+    <!-- 스타일시트 -->
+    <link rel="stylesheet" href="assets/css/style.css">
+</head>
+<body>
+
+<div class="simulator-container">
+    <!-- ── 상태/피드 사이드 패널 ── -->
+    <div class="side-panel">
+        <div class="status-card">
+            <div class="status-title">
+                <span>윤가은의 의심도</span>
+                <span id="suspicion-text">0%</span>
+            </div>
+            <div class="suspicion-bar-bg">
+                <div class="suspicion-bar-fill" id="suspicion-fill"></div>
+            </div>
+        </div>
+
+        <div class="feed-container">
+            <div class="feed-header">📱 SNS 피드 & 뉴스 (스크롤 단서)</div>
+            <div class="feed-item">
+                <div class="feed-author">
+                    <span>[뉴스] IT 트렌드</span>
+                    <span class="feed-date">어제</span>
+                </div>
+                개인주의 극단화 시대, 고인을 대신해 메신저를 관리해 주는 '사후관리 AI' 서비스 이용자 급증...
+            </div>
+            <div class="feed-item feed-highlight">
+                <div class="feed-author">
+                    <span>@user_memory</span>
+                    <span class="feed-date">3일 전</span>
+                </div>
+                요즘 SNS 프로필 보관함에 유서 써두는 게 유행이라며? 나도 혹시 몰라서 하나 남겨뒀음. 다들 미리 작성해 둬라.
+            </div>
+            <div class="feed-item">
+                <div class="feed-author">
+                    <span>@daily_life</span>
+                    <span class="feed-date">1주일 전</span>
+                </div>
+                오랜만에 친구들과 여행 완료. 추억은 오직 사진과 메시지로만 남는구나.
+            </div>
+            <div class="feed-item">
+                <div class="feed-author">
+                    <span>사후관리 시스템 안내</span>
+                    <span class="feed-date">시스템</span>
+                </div>
+                [경고] 미등록 사용자와의 대화 시 데이터 단서 부족으로 어색한 어조가 출력될 수 있습니다. 정체가 발각되지 않도록 주의하세요.
+            </div>
+        </div>
+    </div>
+
+    <!-- ── 모바일 폰 시뮬레이터 프레임 ── -->
+    <div class="phone-frame">
+        <div class="phone-header">
+            <div class="user-info">
+                <div class="avatar">가은</div>
+                <div class="user-details">
+                    <div class="name">윤가은</div>
+                    <div class="status">온라인</div>
+                </div>
+            </div>
+            <div class="ai-badge">AI 모드 가동 중</div>
+        </div>
+
+        <div class="chat-area" id="chat-area">
+            <div class="chat-divider">3주 전 대화 기록</div>
+            <div class="message sent">이번 프로젝트 끝나면 일주일 정도 쉬는 거 맞지? 다 끝나고 연락줘.</div>
+            <div class="chat-divider">3주 간의 공백 후 현재</div>
+        </div>
+
+        <div class="choices-area" id="choices-area"></div>
+
+        <div class="overlay" id="ending-overlay">
+            <div class="ending-title" id="ending-title">엔딩 제목</div>
+            <div class="ending-desc" id="ending-desc">엔딩 설명</div>
+            <button class="restart-btn" onclick="resetGame()">시뮬레이터 다시 시작</button>
+        </div>
+    </div>
+</div>
+
+<!-- 앱 로직 -->
+<script src="assets/js/app.js"></script>
+
+</body>
+</html>
